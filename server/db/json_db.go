@@ -2,6 +2,8 @@ package db
 
 import (
 	"encoding/json"
+	"fmt"
+	"net"
 	"os"
 )
 
@@ -38,6 +40,8 @@ func NewJSONDatabase(FilePath string) *JSONDatabase {
 	Map := make(map[string]any)
 	Map["Devices"] = make(map[string]DeviceData)
 	Map["Files"] = make(map[string]FileMetaData)
+	Map["FileSegments"] = make(map[string]FileSegment)
+	Map["DevicesFileSegments"] = make(map[string]DevicesFileSegments)
 	j := &JSONDatabase{
 		FilePath,
 		Map,
@@ -67,7 +71,6 @@ func (j *JSONDatabase) Connect() error {
 	// Additional initialization, such as initializing data structures or handling other setup tasks
 
 	return nil
-
 }
 
 // Close closes the JSON database connection
@@ -75,9 +78,68 @@ func (j *JSONDatabase) Close() error {
 	return writeToJSON(j.CachedDB, j.FilePath)
 }
 
-func (j *JSONDatabase) RegisterDevice(data DeviceData) {
+func (j *JSONDatabase) RegisterDevice(data DeviceData) error {
 	devicesMap, ok := j.CachedDB["Devices"].(map[string]any)
 	if ok {
 		devicesMap[data.Ip.String()] = make([]string, 0)
+	} else {
+		e := ErrBadSchema
+		return e
 	}
+
+	return nil
+}
+
+func (j *JSONDatabase) ResigerFile(file FileMetaData) {
+	filesMap, ok := j.CachedDB["Files"].(map[string]any)
+	if ok {
+		m := make(map[string]any)
+		m["Name"] = file.Name
+		filesMap[fmt.Sprint(file.Id)] = m
+	}
+}
+
+func (j *JSONDatabase) GetFileData(file_id int64) (*FileMetaData, error) {
+	files, ok := j.CachedDB["Files"].(map[string]any)
+	if !ok {
+
+		return nil, ErrBadSchema
+	}
+
+	file := new(FileMetaData)
+	val, exists := files[fmt.Sprint(file_id)]
+	if !exists {
+		return nil, nil
+	}
+	m, ok := val.(map[string]any)
+	if !ok {
+		return nil, ErrBadSchema
+	}
+	file.Name = fmt.Sprint(m["Name"])
+	file.Id = file_id
+	return file, nil
+}
+
+/*
+Map["FileSegments"] = make(map[string]FileSegment)
+Map["DevicesFileSegments"] = make(map[string]DevicesFileSegments)
+*/
+func (j *JSONDatabase) RegisterFileSegment(device_ip net.IP, segment FileSegment) error {
+	segmentsMap, ok := j.CachedDB["FileSegments"].(map[string]any)
+	if !ok {
+		return ErrBadSchema
+	}
+	fileData, err := j.GetFileData(segment.FileId)
+	if err != nil {
+		return err
+	}
+	if fileData == nil {
+		return ErrFileDoesNotExist
+	}
+	pk := fmt.Sprint(segment.FileId, "_", segment.FirstByte)
+	segmentsMap[pk] = map[string]string{
+		"length": fmt.Sprint(segment.Length),
+	}
+	// segmentsMap[device_ip.String()] = make([]string, 0)
+	return nil
 }

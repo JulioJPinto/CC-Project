@@ -12,10 +12,18 @@ func main() {
 	fmt.Println(database.Connect())
 
 	ip := net.ParseIP("127.0.0.1")
-	a := db.DeviceData{ip}
-	database.RegisterDevice(a)
-	database.Close()
+	device := db.DeviceData{ip}
+	database.RegisterDevice(device)
 
+	file := db.FileMetaData{1, "ficheiro.txt"}
+	database.ResigerFile(file)
+
+	file_segment1 := db.FileSegment{1, 1, 1}
+	fmt.Println(database.RegisterFileSegment(ip, file_segment1))
+
+	database.Close()
+	
+	return
 	listener, err := net.Listen("tcp", "localhost:8080")
 	if err != nil {
 		fmt.Println("Error listening:", err)

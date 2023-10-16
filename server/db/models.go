@@ -3,15 +3,20 @@ package db
 import "net"
 
 type DeviceData struct {
-	Ip net.IP
+	Ip net.IP // Primary Key
 }
 
-type FileMetaData struct{
-	name string
-	id int64
+type FileMetaData struct {
+	Id   int64 // Primary Key
+	Name string
 }
 
-type FileSegment struct{
-	firstByte int64
-	length int64
+type FileSegment struct {
+	FirstByte int64
+	Length    int64
+	FileId    int64 // Foriegn Key refere um FileMetaData
+}
+type DevicesFileSegments struct {
+	Ip net.IP // Foriegn Key refere um DeviceData
+	FileSegment FileSegment // Foriegn Key refere um FileSegment
 }
