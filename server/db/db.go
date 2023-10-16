@@ -1,5 +1,11 @@
-package cc_project
+package db
 
-func RegisterDevice(){
-	return
+var db Database = nil
+
+// Database interface
+type Database interface {
+	Connect() error
+	Close() error
+	RegisterDevice(DeviceData) error
+	GetAllDevices() []DeviceData
 }
