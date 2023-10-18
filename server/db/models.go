@@ -16,7 +16,8 @@ type FileSegment struct {
 	Length    int64
 	FileId    int64 // Foriegn Key refere um FileMetaData
 }
-type DevicesFileSegments struct {
-	Ip net.IP // Foriegn Key refere um DeviceData
-	FileSegment FileSegment // Foriegn Key refere um FileSegment
+
+func (s FileSegment) LastByte() int64 {
+	return s.FirstByte + s.Length
 }
+

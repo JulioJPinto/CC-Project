@@ -15,14 +15,19 @@ func main() {
 	device := db.DeviceData{ip}
 	database.RegisterDevice(device)
 
+	ip2 := net.ParseIP("127.1.3.1")
+	device2 := db.DeviceData{ip}
+	database.RegisterDevice(device2)
+
 	file := db.FileMetaData{1, "ficheiro.txt"}
 	database.ResigerFile(file)
 
 	file_segment1 := db.FileSegment{1, 1, 1}
 	fmt.Println(database.RegisterFileSegment(ip, file_segment1))
+	fmt.Println(database.RegisterFileSegment(ip2, file_segment1))
 
 	database.Close()
-	
+
 	return
 	listener, err := net.Listen("tcp", "localhost:8080")
 	if err != nil {
