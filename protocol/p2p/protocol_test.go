@@ -1,4 +1,4 @@
-package p2p_protocol
+package p2p
 
 import (
 	"testing"
@@ -15,8 +15,8 @@ func TestSerializeAndDeserialize(t *testing.T) {
 		length:   0xA00,
 	}
 
-	serialized := serialize(h)
-	deserialized := deserialize(serialized)
+	serialized := Serialize(h)
+	deserialized := Deserialize(serialized)
 
 	if h != deserialized {
 		t.Errorf("Serialization and deserialization failed.\nOriginal: %+v\nDeserialized: %+v", h, deserialized)

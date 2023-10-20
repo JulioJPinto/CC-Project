@@ -1,6 +1,7 @@
 package main
 
 import (
+	"cc_project/protocol/client_tracker"
 	"fmt"
 	"net"
 )
@@ -43,14 +44,13 @@ func handleClient(conn net.Conn) {
 				return
 			}
 
-			// payload := buffer[:n]
 			recieved_data = append(recieved_data, buffer[:n]...)
 			if n != buffer_limit {
 				break
 			}
 		}
 		fmt.Println("Received:", string(recieved_data))
-
+		handleRequest(recieved_data, conn.RemoteAddr())
 		// If you want to send a response, you can use conn.Write
 		response := []byte("Hello from the server")
 		_, err := conn.Write(response)
@@ -59,4 +59,9 @@ func handleClient(conn net.Conn) {
 			return
 		}
 	}
+}
+
+func handleRequest(data []byte, remote net.Addr) {
+	header := client_tracker.Deserialize(data)
+	fmt.Println(remote, header)
 }

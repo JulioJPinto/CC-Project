@@ -1,0 +1,1 @@
+Server dropa conexões LRU (least recently used)
