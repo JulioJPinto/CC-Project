@@ -7,7 +7,7 @@ import (
 func main() {
 	config := fstp.FSTPConfig{Host: "localhost", Port: "8080"}
 	client, _ := fstp.NewFSTPClient(config)
-	body := fstp.IHaveProps{Files: []fstp.File_info{{Id: 1}}}
+	body := fstp.IHaveProps{Files: []fstp.FileInfo{{Id: 1}}}
 	client.Request(fstp.IHaveRequest(body))
 	// Send and receive data with the server
 }

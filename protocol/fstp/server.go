@@ -1,33 +1,33 @@
 package fstp
 
 import (
-	"log"
 	"fmt"
+	"log"
 	"net"
 )
+
 // fstp_instance ...
 type fstp_instance struct {
-	conn net.Conn
+	conn    net.Conn
 	handler FSTPHandler
 }
 
 type FSTPHandler interface {
 	HandleRequest(FSTPrequest) FSTPresponse
-} 
+}
 
 // FSTPServer ...
 type FSTPServer struct {
-	host string
-	port string
+	host    string
+	port    string
 	handler FSTPHandler
 }
 
-
 // New ...
-func New(config *FSTPConfig,handler FSTPHandler) *FSTPServer {
+func New(config *FSTPConfig, handler FSTPHandler) *FSTPServer {
 	return &FSTPServer{
-		host: config.Host,
-		port: config.Port,
+		host:    config.Host,
+		port:    config.Port,
 		handler: handler,
 	}
 }
@@ -47,7 +47,7 @@ func (server *FSTPServer) Run() {
 		}
 
 		instance := &fstp_instance{
-			conn: conn,
+			conn:    conn,
 			handler: server.handler,
 		}
 		go instance.handleClient()
@@ -63,7 +63,6 @@ func (instance *fstp_instance) handleClient() {
 	var recieved_data []byte
 	buffer := make([]byte, buffer_limit) // Create a buffer to store incoming data
 
-	
 	for {
 		for {
 			n, err := instance.conn.Read(buffer)
@@ -77,14 +76,20 @@ func (instance *fstp_instance) handleClient() {
 				break
 			}
 		}
-		fmt.Println("Received:", string(recieved_data))
+		fmt.Printf("header: %x payload: %s \n", recieved_data[0:FSTPHEaderSize], recieved_data[FSTPHEaderSize-1:])
 
-		req := FSTPrequest{}
-		req.Deserialize(recieved_data)
+		req_msg := FSTPmessage{}
+		req_msg.Deserialize(recieved_data)
+		req := FSTPrequest(req_msg)
 		resp := instance.handler.HandleRequest(req)
-		// If you want to send a response, you can use conn.Write
-		response,_ := resp.Serialize()
-		_, err := instance.conn.Write(response)
+
+		resp_msg := FSTPmessage(resp)
+		response, err := resp_msg.Serialize()
+		if err != nil {
+			fmt.Println("Error serializing:", err)
+			return
+		}
+		_, err = instance.conn.Write(response)
 		if err != nil {
 			fmt.Println("Error writing:", err)
 			return

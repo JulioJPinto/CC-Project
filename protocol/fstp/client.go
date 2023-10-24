@@ -1,14 +1,9 @@
 package fstp
 
 import (
-	"bufio"
 	"cc_project/helpers"
+	"fmt"
 	"net"
-)
-
-const (
-	IHave  = 0b0001
-	WhoHas = 0b0010
 )
 
 type FSTPclient struct {
@@ -28,25 +23,40 @@ func (client *FSTPclient) Close() {
 }
 
 func (client *FSTPclient) Request(request FSTPrequest) (*FSTPresponse, error) {
-	s, _ := request.Serialize()
+	req_msg := FSTPmessage(request)
+	s, _ := req_msg.Serialize()
 	client.conn.Write(s)
 
-	reader := bufio.NewReader(client.conn)
-	message, err := reader.ReadBytes('\r')
+	var recieved_data []byte
+	buffer := make([]byte, buffer_limit) // Create a buffer to store incoming data
+	var err error
+	for {
+		n, err := client.conn.Read(buffer)
+		if err != nil {
+			fmt.Println("Error reading:", err)
+			break
+		}
+
+		recieved_data = append(recieved_data, buffer[:n]...)
+		if n != buffer_limit {
+			break
+		}
+	}
+	fmt.Println("recieved:", recieved_data)
 	if err != nil {
 		client.conn.Close()
 		return nil, err
 	}
-	resp := &FSTPresponse{}
-	resp.Deserialize(message)
-	return resp, nil
+	resp_msg := &FSTPmessage{}
+	resp_msg.Deserialize(recieved_data)
+	resp := FSTPresponse(*resp_msg)
+	return &resp, nil
 }
 
-func (client *FSTPclient) WhoHasRequest(info File_info) FSTPrequest {
+func (client *FSTPclient) WhoHasRequest(info FileInfo) FSTPrequest {
 
 	header := FSTPHeader{
 		IHave,
-		0, // set as 0 by default
 	}
 
 	payload := helpers.SerializableMap(map[string]any{"file": info})
@@ -55,15 +65,10 @@ func (client *FSTPclient) WhoHasRequest(info File_info) FSTPrequest {
 	return FSTPrequest{header, &payload}
 }
 
-type IHaveProps struct {
-	Files []File_info
-}
-
 func IHaveRequest(props IHaveProps) FSTPrequest {
 
 	header := FSTPHeader{
 		IHave,
-		0, // set as 0 by default
 	}
 	payload := helpers.SerializableMap(map[string]any{"file": props})
 	return FSTPrequest{header, &payload}

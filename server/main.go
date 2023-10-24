@@ -15,7 +15,9 @@ type handler struct {
 // handleRequest(FSTPrequest) FSTPresponse
 func (s *handler) HandleRequest(req fstp.FSTPrequest) fstp.FSTPresponse {
 	fmt.Println("bué da louco")
-	return fstp.FSTPresponse{}
+	resp := fstp.FSTPmessage{Payload: req.Payload}
+	resp.Header = fstp.FSTPHeader{Flags: fstp.IHave}
+	return fstp.FSTPresponse(resp)
 }
 
 func main() {
