@@ -1,13 +1,9 @@
 package fstp
 
 import (
-	// "bytes"
 	"cc_project/helpers"
 	"encoding/binary"
-
-	// "encoding/gob"
 	"encoding/json"
-	"fmt"
 	"unsafe"
 )
 
@@ -40,7 +36,6 @@ type IHaveProps struct {
 }
 
 func (data *IHaveProps) Deserialize(bytes []byte) error {
-	fmt.Println("unmarshaling", bytes)
 	return json.Unmarshal(bytes, data)
 }
 
@@ -66,10 +61,6 @@ func (message *FSTPmessage) Serialize() ([]byte, error) {
 	serialized_payload_size := make([]byte, unsafe.Sizeof(payload_size))
 	binary.LittleEndian.PutUint32(serialized_payload_size, payload_size) // (*) aqui também
 	ret := append(append([]byte{tag}, serialized_payload_size...), payload...)
-
-	fmt.Println("message: ", *message)
-	fmt.Printf("header: %x payload: %s \n", ret[0:FSTPHEaderSize], ret[FSTPHEaderSize:])
-
 	return ret, nil
 
 }
@@ -84,12 +75,8 @@ func (message *FSTPmessage) Deserialize(byteArray []byte) error {
 	switch message.Header.Flags {
 
 	case IHave:
-		fmt.Println("entramos")
 		var payload = IHaveProps{}
-		// err = (&payload).Deserialize(byteArray[FSTPHEaderSize:])
-		fmt.Println(byteArray[FSTPHEaderSize:])
 		json.Unmarshal(byteArray[FSTPHEaderSize:], &payload)
-		fmt.Println(payload)
 		message.Payload = &payload
 	case WhoHas:
 		// Deserialize WhoHas request

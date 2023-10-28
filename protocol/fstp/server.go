@@ -14,7 +14,6 @@ type fstp_routine struct {
 
 type FSTPHandler interface {
 	HandleRequest(FSTPrequest) FSTPresponse
-	HandleIHaveRequest(net.Conn, FSTPHeader, IHaveProps) FSTPresponse
 }
 
 // FSTPServer ...
