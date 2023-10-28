@@ -1,7 +1,6 @@
 package fstp
 
 import (
-	"cc_project/helpers"
 	"fmt"
 	"net"
 )
@@ -51,18 +50,6 @@ func (client *FSTPclient) Request(request FSTPrequest) (*FSTPresponse, error) {
 	resp_msg.Deserialize(recieved_data)
 	resp := FSTPresponse(*resp_msg)
 	return &resp, nil
-}
-
-func (client *FSTPclient) WhoHasRequest(info FileInfo) FSTPrequest {
-
-	header := FSTPHeader{
-		IHave,
-	}
-
-	payload := helpers.SerializableMap(map[string]any{"file": info})
-	s, _ := payload.Serialize()
-	client.conn.Write(s)
-	return FSTPrequest{header, &payload}
 }
 
 func IHaveRequest(props IHaveProps) FSTPrequest {

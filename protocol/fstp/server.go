@@ -77,34 +77,23 @@ func (instance *fstp_routine) handleClient() {
 				break
 			}
 		}
-		fmt.Printf("header: %x payload: %s \n", recieved_data[0:FSTPHEaderSize], recieved_data[FSTPHEaderSize:])
-		// FSTPHeader
-		msg_type := MessageType(recieved_data)
+		fmt.Printf("header: %x payload: %s \n", recieved_data[0:FSTPHEaderSize], recieved_data[FSTPHEaderSize-1:])
 
-		switch msg_type {
-		case IHave:
-			req_payload := IHaveProps{}
-			err := (&req_payload).Deserialize(recieved_data[FSTPHEaderSize:])
-			fmt.Println("erro:", err)
-			fmt.Println("req_payload", req_payload)
-			instance.handler.HandleIHaveRequest(instance.conn, FSTPHeader{msg_type}, req_payload)
+		req_msg := FSTPmessage{}
+		req_msg.Deserialize(recieved_data)
+		req := FSTPrequest(req_msg)
+		resp := instance.handler.HandleRequest(req)
+
+		resp_msg := FSTPmessage(resp)
+		response, err := resp_msg.Serialize()
+		if err != nil {
+			fmt.Println("Error serializing:", err)
+			return
 		}
-		// if err != nil {
-		// 	fmt.Println("Error serializing:", err)
-		// 	return
-		// }
-		// json.Unmarshal(recieved_data, &req_msg)
-		// fmt.Println("dá erro?? ", err)
-		// fmt.Println("msg", req_msg.Payload)
-		// req := FSTPrequest(req_msg)
-		// resp := instance.handler.HandleRequest(req)
-
-		// resp_msg := FSTPmessage(resp)
-		// response, err := resp_msg.Serialize()
-		// _, err = instance.conn.Write(response)
-		// if err != nil {
-		// 	fmt.Println("Error writing:", err)
-		// 	return
-		// }
+		_, err = instance.conn.Write(response)
+		if err != nil {
+			fmt.Println("Error writing:", err)
+			return
+		}
 	}
 }
