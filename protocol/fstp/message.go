@@ -1,10 +1,11 @@
 package fstp
 
 import (
-	"bytes"
+	// "bytes"
 	"cc_project/helpers"
 	"encoding/binary"
-	"encoding/gob"
+
+	// "encoding/gob"
 	"encoding/json"
 	"fmt"
 	"unsafe"
@@ -31,45 +32,50 @@ type FSTPresponse FSTPmessage
 const FSTPHEaderSize = 5 // 5 bytes
 
 type FileInfo struct {
-	Id uint64 `json:"id"`
+	Id uint64 `json:"Id"`
 }
 
 type IHaveProps struct {
-	Files []FileInfo `json:"files"`
+	Files []FileInfo `json:"Files"`
 }
 
 func (data *IHaveProps) Deserialize(bytes []byte) error {
-	return json.Unmarshal(bytes[FSTPHEaderSize-1:], data)
+	fmt.Println("unmarshaling", bytes)
+	return json.Unmarshal(bytes, data)
 }
 
 func (data *IHaveProps) Serialize() ([]byte, error) {
 	return json.Marshal(data)
 }
 
-func (f *FileInfo) Serialize() ([]byte, error) {
-	var buf bytes.Buffer
-	enc := gob.NewEncoder(&buf)
+// func (f *FileInfo) Serialize() ([]byte, error) {
+// 	var buf bytes.Buffer
+// 	enc := gob.NewEncoder(&buf)
 
-	if err := enc.Encode(f); err != nil {
-		return nil, err
-	}
+// 	if err := enc.Encode(f); err != nil {
+// 		return nil, err
+// 	}
 
-	return buf.Bytes(), nil
-}
+// 	return buf.Bytes(), nil
+// }
 
 func (message *FSTPmessage) Serialize() ([]byte, error) {
 	tag := message.Header.Flags
 	payload, _ := message.Payload.Serialize() // WARN!!! ignoring serialization errors like a chad
-	payload_size := uint16(len(payload))      // Mudar o tamanho do int se necessário, improvável af tho (*)
+	payload_size := uint32(len(payload))      // Mudar o tamanho do int se necessário, improvável af tho (*)
 	serialized_payload_size := make([]byte, unsafe.Sizeof(payload_size))
-	binary.NativeEndian.PutUint16(serialized_payload_size, payload_size) // (*) aqui também
+	binary.LittleEndian.PutUint32(serialized_payload_size, payload_size) // (*) aqui também
 	ret := append(append([]byte{tag}, serialized_payload_size...), payload...)
 
 	fmt.Println("message: ", *message)
-	fmt.Printf("header: %x payload: %s \n", ret[0:FSTPHEaderSize], ret[FSTPHEaderSize-1:])
+	fmt.Printf("header: %x payload: %s \n", ret[0:FSTPHEaderSize], ret[FSTPHEaderSize:])
 
 	return ret, nil
 
+}
+
+func MessageType(byteArray []byte) uint8 {
+	return byteArray[0]
 }
 
 func (message *FSTPmessage) Deserialize(byteArray []byte) error {
@@ -78,8 +84,12 @@ func (message *FSTPmessage) Deserialize(byteArray []byte) error {
 	switch message.Header.Flags {
 
 	case IHave:
+		fmt.Println("entramos")
 		var payload = IHaveProps{}
-		err = payload.Deserialize(byteArray[FSTPHEaderSize-1:])
+		// err = (&payload).Deserialize(byteArray[FSTPHEaderSize:])
+		fmt.Println(byteArray[FSTPHEaderSize:])
+		json.Unmarshal(byteArray[FSTPHEaderSize:], &payload)
+		fmt.Println(payload)
 		message.Payload = &payload
 	case WhoHas:
 		// Deserialize WhoHas request

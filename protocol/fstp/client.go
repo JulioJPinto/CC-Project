@@ -69,7 +69,6 @@ func IHaveRequest(props IHaveProps) FSTPrequest {
 
 	header := FSTPHeader{
 		IHave,
-	}
-	payload := helpers.SerializableMap(map[string]any{"file": props})
-	return FSTPrequest{header, &payload}
+	}	
+	return FSTPrequest{header, &props}
 }
