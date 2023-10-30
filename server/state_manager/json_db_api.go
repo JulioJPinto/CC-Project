@@ -1,4 +1,4 @@
-package db
+package state_manager
 
 import (
 	"cc_project/helpers"
@@ -20,8 +20,11 @@ func (j *JSONDatabase) RegisterDevice(data DeviceData) error {
 	return nil
 }
 
-func (j *JSONDatabase) ResigerFile(file FileMetaData) {
-	filesMap, ok := j.CachedDB["Files"].(map[string]any)
+func (db *JSONDatabase) ResigerFile(file FileMetaData) {
+	db.lock.Lock()
+	defer db.lock.Unlock()
+	
+	filesMap, ok := db.CachedDB["Files"].(map[string]any)
 	if ok {
 		m := make(map[string]any)
 		m["Name"] = file.Name
@@ -29,8 +32,10 @@ func (j *JSONDatabase) ResigerFile(file FileMetaData) {
 	}
 }
 
-func (j *JSONDatabase) GetFileDataById(file_id int64) (*FileMetaData, error) {
-	files, ok := j.CachedDB["Files"].(map[string]any)
+func (db *JSONDatabase) GetFileDataById(file_id int64) (*FileMetaData, error) {
+	db.lock.RLock()
+	defer db.lock.RUnlock()
+	files, ok := db.CachedDB["Files"].(map[string]any)
 	if !ok {
 
 		return nil, ErrBadSchema
@@ -50,12 +55,15 @@ func (j *JSONDatabase) GetFileDataById(file_id int64) (*FileMetaData, error) {
 	return file, nil
 }
 
-func (j *JSONDatabase) RegisterFileSegment(device_ip net.IP, segment FileSegment) error {
-	segmentsMap, ok := j.CachedDB["FileSegments"].(map[string]any)
+func (db *JSONDatabase) RegisterFileSegment(device_ip net.IP, segment FileSegment) error {
+	
+	db.lock.RLock()
+	defer db.lock.RUnlock()
+	segmentsMap, ok := db.CachedDB["FileSegments"].(map[string]any)
 	if !ok {
 		return ErrBadSchema
 	}
-	fileData, err := j.GetFileDataById(segment.FileId)
+	fileData, err := db.GetFileDataById(segment.FileId)
 	if err != nil {
 		return err
 	}
@@ -78,8 +86,10 @@ func (j *JSONDatabase) RegisterFileSegment(device_ip net.IP, segment FileSegment
 	return nil
 }
 
-func (j *JSONDatabase) WhoHasFileSegment(segment FileSegment) ([]net.IP, error) {
-	files_segments_map, ok := j.CachedDB["FileSegments"].(map[string]map[string]string)
+func (db *JSONDatabase) WhoHasFileSegment(segment FileSegment) ([]net.IP, error) {
+	db.lock.RLock()
+	defer db.lock.RUnlock()
+	files_segments_map, ok := db.CachedDB["FileSegments"].(map[string]map[string]string)
 	if !ok {
 		return nil, ErrBadSchema
 	}

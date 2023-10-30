@@ -1,8 +1,9 @@
-package db
+package state_manager
 
 import (
 	"encoding/json"
 	"os"
+	"sync"
 )
 
 // writeToJSON writes a map to a JSON file
@@ -30,6 +31,7 @@ func readFromJSON(filePath string) (map[string]interface{}, error) {
 
 // JSONDatabase represents a JSON-based database
 type JSONDatabase struct {
+	lock sync.RWMutex
 	FilePath string
 	CachedDB map[string]interface{}
 }
@@ -40,6 +42,7 @@ func NewJSONDatabase(FilePath string) *JSONDatabase {
 	Map["Files"] = make(map[string]FileMetaData)
 	Map["FileSegments"] = make(map[string]FileSegment)
 	j := &JSONDatabase{
+		sync.RWMutex{},
 		FilePath,
 		Map,
 	}
@@ -48,29 +51,33 @@ func NewJSONDatabase(FilePath string) *JSONDatabase {
 }
 
 // Connect opens the JSON database connection
-func (j *JSONDatabase) Connect() error {
-	_, err := os.Stat(j.FilePath)
+func (db *JSONDatabase) Connect() error {
+	db.lock.Lock()
+	defer db.lock.Unlock()
+	_, err := os.Stat(db.FilePath)
 
 	if os.IsNotExist(err) {
 		// If the file does not exist, create an empty one
-		file, createErr := os.Create(j.FilePath)
+		file, createErr := os.Create(db.FilePath)
 		if createErr != nil {
 			return createErr
 		}
-		writeToJSON(j.CachedDB, j.FilePath)
+		writeToJSON(db.CachedDB, db.FilePath)
 		defer file.Close()
 	}
-	data, err := readFromJSON(j.FilePath)
+	data, err := readFromJSON(db.FilePath)
 	if err != nil {
 		return err
 	}
-	j.CachedDB = data
+	db.CachedDB = data
 	// Additional initialization, such as initializing data structures or handling other setup tasks
 
 	return nil
 }
 
 // Close closes the JSON database connection
-func (j *JSONDatabase) Close() error {
-	return writeToJSON(j.CachedDB, j.FilePath)
+func (db *JSONDatabase) Close() error {
+	db.lock.Lock()
+	defer db.lock.Unlock()
+	return writeToJSON(db.CachedDB, db.FilePath)
 }

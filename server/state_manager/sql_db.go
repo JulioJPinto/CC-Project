@@ -1,4 +1,4 @@
-package db
+package state_manager
 // SQLDatabase represents an SQLite-based database
 type SQLDatabase struct {
 	ConnString string

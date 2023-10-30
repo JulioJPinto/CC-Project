@@ -13,7 +13,7 @@ type fstp_routine struct {
 }
 
 type FSTPHandler interface {
-	HandleRequest(FSTPrequest) FSTPresponse
+	HandleRequest(net.Conn,FSTPrequest) FSTPresponse
 }
 
 // FSTPServer ...
@@ -81,7 +81,7 @@ func (instance *fstp_routine) handleClient() {
 		req_msg := FSTPmessage{}
 		req_msg.Deserialize(recieved_data)
 		req := FSTPrequest(req_msg)
-		resp := instance.handler.HandleRequest(req)
+		resp := instance.handler.HandleRequest(instance.conn, req)
 
 		resp_msg := FSTPmessage(resp)
 		response, err := resp_msg.Serialize()

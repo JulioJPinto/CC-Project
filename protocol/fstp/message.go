@@ -27,10 +27,6 @@ type FSTPresponse FSTPmessage
 
 const FSTPHEaderSize = 5 // 5 bytes
 
-type FileInfo struct {
-	Id uint64 `json:"Id"`
-}
-
 type IHaveProps struct {
 	Files []FileInfo `json:"Files"`
 }
@@ -43,16 +39,6 @@ func (data *IHaveProps) Serialize() ([]byte, error) {
 	return json.Marshal(data)
 }
 
-// func (f *FileInfo) Serialize() ([]byte, error) {
-// 	var buf bytes.Buffer
-// 	enc := gob.NewEncoder(&buf)
-
-// 	if err := enc.Encode(f); err != nil {
-// 		return nil, err
-// 	}
-
-// 	return buf.Bytes(), nil
-// }
 
 func (message *FSTPmessage) Serialize() ([]byte, error) {
 	tag := message.Header.Flags
