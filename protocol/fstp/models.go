@@ -1,20 +1,16 @@
 package fstp
 
-import "net"
 
 type Device struct {
-	IP net.IP `json:"IP"`
+	IP string `json:"IP"`
 }
 
-type DeviceIdentifier net.IP
+type DeviceIdentifier string // ip
 
 func (d *Device) GetIdentifier() DeviceIdentifier {
 	return DeviceIdentifier(d.IP)
 }
 
-func DeviceEqual(d1 Device, d2 Device) bool {
-	return d1.IP.String() == d2.IP.String()
-}
 
 type FileInfo struct {
 	Id uint64 `json:"Id"`

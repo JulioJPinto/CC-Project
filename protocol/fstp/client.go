@@ -6,7 +6,7 @@ import (
 )
 
 type FSTPclient struct {
-	conn net.Conn
+	Conn net.Conn
 }
 
 func NewFSTPClient(config FSTPConfig) (*FSTPclient, error) {
@@ -18,21 +18,21 @@ func NewFSTPClient(config FSTPConfig) (*FSTPclient, error) {
 }
 
 func (client *FSTPclient) Close() {
-	client.conn.Close()
+	client.Conn.Close()
 }
 
 func (client *FSTPclient) Request(request FSTPrequest) (*FSTPresponse, error) {
 	req_msg := FSTPmessage(request)
 	s, _ := req_msg.Serialize()
-	client.conn.Write(s)
+	client.Conn.Write(s)
 
 	var recieved_data []byte
 	buffer := make([]byte, buffer_limit) // Create a buffer to store incoming data
 	var err error
 	for {
-		n, err := client.conn.Read(buffer)
+		n, err := client.Conn.Read(buffer)
 		if err != nil {
-	
+
 			fmt.Println("Error reading:", err)
 			break
 		}
@@ -44,7 +44,7 @@ func (client *FSTPclient) Request(request FSTPrequest) (*FSTPresponse, error) {
 	}
 	fmt.Println("recieved:", recieved_data)
 	if err != nil {
-		client.conn.Close()
+		client.Conn.Close()
 		return nil, err
 	}
 	resp_msg := &FSTPmessage{}
@@ -55,14 +55,14 @@ func (client *FSTPclient) Request(request FSTPrequest) (*FSTPresponse, error) {
 
 func IHaveRequest(props IHaveProps) FSTPrequest {
 	header := FSTPHeader{
-		IHave,
+		IHaveReq,
 	}
 	return FSTPrequest{header, &props}
 }
 
 func IHaveFileRequest(props IHaveFileProps) FSTPrequest {
 	header := FSTPHeader{
-		IHaveFile,
+		IHaveFileReq,
 	}
 	return FSTPrequest{header, &props}
 }

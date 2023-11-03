@@ -13,6 +13,9 @@ func main() {
 	// body := fstp.IHaveProps{Files: []fstp.FileInfo{{Id: 1}}}
 	// client.Request(fstp.IHaveRequest(body))
 	fdata, _ := HashFile("/home/cralos/Uni/3Ano/CC/CC-Project/client_files/test_file.txt")
+	fdata.OriginatorIP = client.Conn.LocalAddr().String()
+	fdata.Name = "test_file.txt"
+	
 	client.Request(fstp.IHaveFileRequest(fstp.IHaveFileProps(*fdata)))
 	// make_file_available("client_files/test_file.txt")
 	// Send and receive data with the server

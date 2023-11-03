@@ -37,6 +37,15 @@ func (s *Set[T]) Contains(elem T) bool {
 	return false
 }
 
+func (s *Set[T]) AnyMatch(f func(T) bool) bool {
+	for _, item := range s.slice {
+		if f(item) {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *Set[T]) Add(elem T) {
 	// Check if the element already exists in the set before adding it
 	if !s.Contains(elem) {

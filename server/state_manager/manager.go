@@ -2,12 +2,12 @@ package state_manager
 
 import (
 	"cc_project/protocol/fstp"
-	"net"
+	"os"
 )
 
 type StateManager struct {
 	filepath string
-	state    *State
+	State    *State
 }
 
 func NewManager(filepath string) *StateManager {
@@ -19,26 +19,30 @@ func (m *StateManager) Connect() error {
 }
 
 func (m *StateManager) RegisterDevice(device fstp.Device) error {
-	m.state.registered_nodes.Add(device)
+	m.State.Registered_nodes.Add(device)
 	return nil
 }
 
 func (m *StateManager) RegisterFile(device fstp.DeviceIdentifier, file_info fstp.FileMetaData) error {
-	file_info.OriginatorIP = net.IP(device).String()
-	m.state.registered_files[file_info.Hash] = file_info
+	file_info.OriginatorIP = string(device)
+	f := func(d fstp.Device) bool { return d.GetIdentifier() == device }
+	if (!m.State.Registered_nodes.AnyMatch(f)){
+		return ErrNodeNotRegistered
+	}
+	m.State.Registered_files[file_info.Hash] = file_info
 	return nil
 }
 
 func (m *StateManager) RegisterFileSegment(device fstp.DeviceIdentifier, file_segment fstp.FileSegment) error {
-	x, ok := m.state.registered_files[file_segment.FileHash]
+	x, ok := m.State.Registered_files[file_segment.FileHash]
 	if !ok {
 		return ErrFileDoesNotExist
 	}
-	offset := file_segment.FirstByte/fstp.SegmentLength
+	offset := file_segment.FirstByte / fstp.SegmentLength
 	if x.SegmentHashes[offset] != file_segment.Hash {
 		return ErrInvalidSegmentHash
 	}
-	m.state.nodes_segments[&device] = append(m.state.nodes_segments[&device], file_segment)
+	m.State.Nodes_segments[device] = append(m.State.Nodes_segments[device], file_segment)
 	return nil
 }
 
@@ -49,5 +53,19 @@ func (m *StateManager) BatchRegisterFileSegments(device fstp.DeviceIdentifier, s
 			return err
 		}
 	}
+	return nil
+}
+func (m *StateManager) DumpToFile() error {
+	// Serialize the state to bytes
+	bytes, err := m.State.Serialize()
+	if err != nil {
+		return err
+	}
+	// Write the bytes to the file specified by m.filepath
+	err = os.WriteFile(m.filepath, bytes, 0644)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }

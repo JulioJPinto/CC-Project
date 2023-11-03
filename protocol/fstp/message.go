@@ -9,9 +9,12 @@ import (
 )
 
 const (
-	IHave     = 0b0001
-	IHaveFile = 0b0011
-	WhoHas    = 0b0100
+	IHaveReq     = 0b0001
+	IHaveFileReq = 0b0011
+	WhoHasReq    = 0b0010
+
+	OKResp  = 0b1000
+	ErrResp = 0b1001
 )
 
 type FSTPHeader struct {
@@ -26,6 +29,23 @@ type FSTPmessage struct {
 
 type FSTPrequest FSTPmessage
 type FSTPresponse FSTPmessage
+
+type ErrorResponse struct {
+	Err string `json:"error"`
+}
+
+func (e *ErrorResponse) Serialize() ([]byte, error) {
+	return []byte(e.Err), nil
+}
+
+func (e *ErrorResponse) Deserialize(data []byte) error {
+	e.Err = string(data)
+	return nil
+}
+
+func NewErrorResponse(err error) FSTPresponse {
+	return FSTPresponse{FSTPHeader{ErrResp}, &ErrorResponse{err.Error()}}
+}
 
 const FSTPHEaderSize = 5 // 5 bytes
 
@@ -54,7 +74,7 @@ func (data *IHaveProps) Serialize() ([]byte, error) {
 func (message *FSTPmessage) Serialize() ([]byte, error) {
 	tag := message.Header.Flags
 	if message.Payload == nil {
-		return []byte{tag}, nil
+		return []byte{tag, 0, 0, 0, 0}, nil
 	}
 	payload, _ := message.Payload.Serialize() // WARN!!! ignoring serialization errors like a chad
 	payload_size := uint32(len(payload))      // Mudar o tamanho do int se necessário, improvável af tho (*)
@@ -74,11 +94,11 @@ func (message *FSTPmessage) Deserialize(byteArray []byte) error {
 	var err error = nil
 	var payload helpers.Serializable
 	switch message.Header.Flags {
-	case IHave:
+	case IHaveReq:
 		payload = &IHaveProps{}
-	case IHaveFile:
+	case IHaveFileReq:
 		payload = &IHaveFileProps{}
-	case WhoHas:
+	case WhoHasReq:
 		// Deserialize WhoHas request
 		// var payload = WhoHasProps{}º
 	default:
