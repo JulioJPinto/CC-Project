@@ -20,7 +20,7 @@ type FileInfo struct {
 	Id uint64 `json:"Id"`
 }
 
-type Hash int64
+type Hash uint32
 type FileMetaData struct {
 	Hash          Hash   `json:"Hash"` // Primary Key
 	Name          string `json:"Name"`

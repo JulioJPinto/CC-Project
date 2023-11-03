@@ -32,6 +32,7 @@ func (client *FSTPclient) Request(request FSTPrequest) (*FSTPresponse, error) {
 	for {
 		n, err := client.conn.Read(buffer)
 		if err != nil {
+	
 			fmt.Println("Error reading:", err)
 			break
 		}
@@ -55,6 +56,13 @@ func (client *FSTPclient) Request(request FSTPrequest) (*FSTPresponse, error) {
 func IHaveRequest(props IHaveProps) FSTPrequest {
 	header := FSTPHeader{
 		IHave,
-	}	
+	}
+	return FSTPrequest{header, &props}
+}
+
+func IHaveFileRequest(props IHaveFileProps) FSTPrequest {
+	header := FSTPHeader{
+		IHaveFile,
+	}
 	return FSTPrequest{header, &props}
 }

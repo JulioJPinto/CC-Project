@@ -15,13 +15,17 @@ var s_manager *state_manager.StateManager
 func (s *handler) HandleRequest(conn net.Conn, req fstp.FSTPrequest) fstp.FSTPresponse {
 	fmt.Println("handler: ", &s, "a fazer cenas com ", req.Header, " & ", req.Payload, "de", conn.RemoteAddr())
 
-	// switch req.Header.Flags {
-	// case fstp.IHave:
-	// 	s_manager.RegisterFileSegment(fstp.DeviceIdentifier(conn.RemoteAddr().(*net.TCPAddr).IP), fstp.FileSegment{FirstByte: 0, FileId: 1, Hash: "aaaa"})
-	// }
-	resp := fstp.FSTPmessage{Payload: req.Payload}
-	resp.Header = fstp.FSTPHeader{Flags: fstp.IHave}
-	return fstp.FSTPresponse(resp)
+	switch req.Header.Flags {
+	case fstp.IHave:
+		// s_manager.RegisterFileSegment(fstp.DeviceIdentifier(conn.RemoteAddr().(*net.TCPAddr).IP), fstp.FileSegment{FirstByte: 0, FileId: 1, Hash: "aaaa"})
+	case fstp.IHaveFile:
+		fmt.Println("I Have file")
+		x, ok := req.Payload.(*fstp.IHaveFileProps)
+		fmt.Println(x, ok)
+	}
+	// resp := fstp.FSTPmessage{Payload: req.Payload}
+	// resp.Header = fstp.FSTPHeader{Flags: fstp.IHave}
+	return fstp.FSTPresponse(fstp.FSTPresponse{Header: req.Header})
 }
 func main() {
 	s_manager = state_manager.NewManager("db.json")

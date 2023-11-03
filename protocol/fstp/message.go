@@ -4,13 +4,14 @@ import (
 	"cc_project/helpers"
 	"encoding/binary"
 	"encoding/json"
+	"fmt"
 	"unsafe"
 )
 
 const (
-	IHave  = 0b0001
-	IHaveFile  = 0b0011
-	WhoHas = 0b0100
+	IHave     = 0b0001
+	IHaveFile = 0b0011
+	WhoHas    = 0b0100
 )
 
 type FSTPHeader struct {
@@ -52,6 +53,9 @@ func (data *IHaveProps) Serialize() ([]byte, error) {
 
 func (message *FSTPmessage) Serialize() ([]byte, error) {
 	tag := message.Header.Flags
+	if message.Payload == nil {
+		return []byte{tag}, nil
+	}
 	payload, _ := message.Payload.Serialize() // WARN!!! ignoring serialization errors like a chad
 	payload_size := uint32(len(payload))      // Mudar o tamanho do int se necessário, improvável af tho (*)
 	serialized_payload_size := make([]byte, unsafe.Sizeof(payload_size))
@@ -61,22 +65,26 @@ func (message *FSTPmessage) Serialize() ([]byte, error) {
 
 }
 
-func MessageType(byteArray []byte) uint8 {
+func MessageType(byteArray []byte) byte {
 	return byteArray[0]
 }
 
 func (message *FSTPmessage) Deserialize(byteArray []byte) error {
-	message.Header.Flags = byteArray[0]
+	message.Header.Flags = MessageType(byteArray)
 	var err error = nil
+	var payload helpers.Serializable
 	switch message.Header.Flags {
-
 	case IHave:
-		var payload = IHaveProps{}
-		json.Unmarshal(byteArray[FSTPHEaderSize:], &payload)
-		message.Payload = &payload
+		payload = &IHaveProps{}
+	case IHaveFile:
+		payload = &IHaveFileProps{}
 	case WhoHas:
 		// Deserialize WhoHas request
-
+		// var payload = WhoHasProps{}º
+	default:
+		return fmt.Errorf("invalid header type: %v", message.Header.Flags)
 	}
+	err = payload.Deserialize(byteArray[FSTPHEaderSize:])
+	message.Payload = payload
 	return err
 }

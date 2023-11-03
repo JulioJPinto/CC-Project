@@ -13,7 +13,7 @@ type fstp_routine struct {
 }
 
 type FSTPHandler interface {
-	HandleRequest(net.Conn,FSTPrequest) FSTPresponse
+	HandleRequest(net.Conn, FSTPrequest) FSTPresponse
 }
 
 // FSTPServer ...
@@ -67,6 +67,10 @@ func (instance *fstp_routine) handleClient() {
 		for {
 			n, err := instance.conn.Read(buffer)
 			if err != nil {
+				// if err.Error() == "EOF" {
+				// 	fmt.Println("Client disconnected")
+				// 	break
+				// }
 				fmt.Println("Error reading:", err)
 				return
 			}
