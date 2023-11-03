@@ -9,7 +9,8 @@ import (
 
 const (
 	IHave  = 0b0001
-	WhoHas = 0b0010
+	IHaveFile  = 0b0011
+	WhoHas = 0b0100
 )
 
 type FSTPHeader struct {
@@ -31,6 +32,16 @@ type IHaveProps struct {
 	Files []FileInfo `json:"Files"`
 }
 
+type IHaveFileProps FileMetaData
+
+func (data *IHaveFileProps) Deserialize(bytes []byte) error {
+	return json.Unmarshal(bytes, data)
+}
+
+func (data *IHaveFileProps) Serialize() ([]byte, error) {
+	return json.Marshal(data)
+}
+
 func (data *IHaveProps) Deserialize(bytes []byte) error {
 	return json.Unmarshal(bytes, data)
 }
@@ -38,7 +49,6 @@ func (data *IHaveProps) Deserialize(bytes []byte) error {
 func (data *IHaveProps) Serialize() ([]byte, error) {
 	return json.Marshal(data)
 }
-
 
 func (message *FSTPmessage) Serialize() ([]byte, error) {
 	tag := message.Header.Flags

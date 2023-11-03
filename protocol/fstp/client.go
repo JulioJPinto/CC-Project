@@ -53,7 +53,6 @@ func (client *FSTPclient) Request(request FSTPrequest) (*FSTPresponse, error) {
 }
 
 func IHaveRequest(props IHaveProps) FSTPrequest {
-
 	header := FSTPHeader{
 		IHave,
 	}	
