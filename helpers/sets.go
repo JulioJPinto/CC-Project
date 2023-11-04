@@ -1,7 +1,27 @@
 package helpers
 
+import "encoding/json"
+
 type Set[T comparable] struct {
-	SetData []T `json:"SetData"`
+	data []T
+}
+
+func (s *Set[T]) MarshalJSON() ([]byte, error) {
+	return json.Marshal(s.data)
+}
+
+func (s *Set[T]) UnmarshalJSON(data []byte) error {
+	var arr []T
+	if err := json.Unmarshal(data, &arr); err != nil {
+		return err
+	}
+
+	s.data = make([]T, len(arr))
+	for _, item := range arr {
+		s.Add(item)
+	}
+
+	return nil
 }
 
 func NewSetFromSlice[T comparable](v []T) *Set[T] {
@@ -18,12 +38,12 @@ func NewSet[T comparable]() *Set[T] {
 
 func (s *Set[T]) Slice() []T {
 	ret := make([]T, 0)
-	copy(s.SetData, ret)
+	copy(s.data, ret)
 	return ret
 }
 
 func (s *Set[T]) Contains(elem T) bool {
-	for _, e := range s.SetData {
+	for _, e := range s.data {
 		if e == elem {
 			return true
 		}
@@ -32,7 +52,7 @@ func (s *Set[T]) Contains(elem T) bool {
 }
 
 func (s *Set[T]) AnyMatch(f func(T) bool) bool {
-	for _, item := range s.SetData {
+	for _, item := range s.data {
 		if f(item) {
 			return true
 		}
@@ -43,16 +63,16 @@ func (s *Set[T]) AnyMatch(f func(T) bool) bool {
 func (s *Set[T]) Add(elem T) {
 	// Check if the element already exists in the set before adding it
 	if !s.Contains(elem) {
-		s.SetData = append(s.SetData, elem)
+		s.data = append(s.data, elem)
 	}
 }
 
 func (s *Set[T]) Union(other Set[T]) *Set[T] {
 	result := NewSet[T]()
-	for _, elem := range s.SetData {
+	for _, elem := range s.data {
 		result.Add(elem)
 	}
-	for _, elem := range other.SetData {
+	for _, elem := range other.data {
 		result.Add(elem)
 	}
 	return result
@@ -60,7 +80,7 @@ func (s *Set[T]) Union(other Set[T]) *Set[T] {
 
 func (s *Set[T]) Intersection(other Set[T]) *Set[T] {
 	result := NewSet[T]()
-	for _, elem := range s.SetData {
+	for _, elem := range s.data {
 		if other.Contains(elem) {
 			result.Add(elem)
 		}
