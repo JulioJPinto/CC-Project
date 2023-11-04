@@ -15,8 +15,9 @@ type FileInfo struct {
 }
 
 type Hash uint32
+type FileHash uint32
 type FileMetaData struct {
-	Hash          Hash   `json:"Hash"` // Primary Key
+	Hash          FileHash   `json:"Hash"` // Primary Key
 	Name          string `json:"Name"`
 	Length        int32  `json:"Length"`
 	OriginatorIP  string `json:"originatorIP"` //IP
@@ -28,7 +29,7 @@ const SegmentLength = 128
 
 type FileSegment struct {
 	FirstByte int64 `json:"FirstByte"`
-	FileHash  Hash  `json:"FileID"` // Foriegn Key refere um FileMetaData
+	FileHash  FileHash  `json:"FileID"` // Foriegn Key refere um FileMetaData
 	Hash      Hash  `json:"Hash"`
 }
 

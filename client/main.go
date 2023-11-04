@@ -9,6 +9,7 @@ import (
 )
 
 func main() {
+
 	config := fstp.FSTPConfig{Host: "localhost", Port: "8080"}
 	client, _ := fstp.NewFSTPClient(config)
 	// body := fstp.IHaveProps{Files: []fstp.FileInfo{{Id: 1}}}
@@ -16,10 +17,12 @@ func main() {
 	fdata, _ := HashFile("/home/cralos/Uni/3Ano/CC/CC-Project/client_files/test_file.txt")
 	fdata.OriginatorIP = client.Conn.LocalAddr().String()
 	fdata.Name = "test_file.txt"
-	
-	client.Request(fstp.IHaveFileRequest(fstp.IHaveFileProps(*fdata)))
+	// client.Request(fstp.IHaveFileRequest(fstp.IHaveFileReqProps(*fdata)))
+	client.Request(fstp.AllFilesRequest())
 	// make_file_available("client_files/test_file.txt")
 	// Send and receive data with the server
+	// for {
+	// }
 }
 func HashFile(path string) (*fstp.FileMetaData, error) {
 	file, err := os.Open(path)
@@ -59,9 +62,6 @@ func HashFile(path string) (*fstp.FileMetaData, error) {
 		hasher.Write(buffer[:n])
 		chunkHash := fstp.Hash(hasher.Sum32()) // Convert to the Hash type
 
-		// Print or process the hash of the chunk
-		fmt.Printf("Hash of %d bytes: %x\n", n, chunkHash)
-
 		// Update the hash of the entire file
 		fileHash.Write(buffer[:n])
 
@@ -73,8 +73,7 @@ func HashFile(path string) (*fstp.FileMetaData, error) {
 	}
 
 	// Get the final hash of the entire file
-	fileChecksum := fstp.Hash(fileHash.Sum32()) // Convert to the Hash type
-	fmt.Printf("Hash of the entire file: %x\n", fileChecksum)
+	fileChecksum := fstp.FileHash(fileHash.Sum32()) // Convert to the Hash type
 
 	// Set the Hash field in the FileMetaData
 	fileMetaData.Hash = fileChecksum

@@ -3,6 +3,8 @@ package fstp
 import (
 	"fmt"
 	"net"
+
+	"github.com/fatih/color"
 )
 
 type FSTPclient struct {
@@ -21,9 +23,15 @@ func (client *FSTPclient) Close() {
 	client.Conn.Close()
 }
 
-func (client *FSTPclient) Request(request FSTPrequest) (*FSTPresponse, error) {
+func (client *FSTPclient) Request(request FSTPRequest) (*FSTPresponse, error) {
 	req_msg := FSTPmessage(request)
 	s, _ := req_msg.Serialize()
+
+	s_data := fmt.Sprint("\nsending: ", s)
+	s_str := fmt.Sprint("\nAKA Header: ", HeaderType(int(s[0])), "\nPayload: ", string(s[FSTPHEaderSize:]))
+	color.Green(s_data)
+	color.Blue(s_str)
+
 	client.Conn.Write(s)
 
 	var recieved_data []byte
@@ -42,7 +50,10 @@ func (client *FSTPclient) Request(request FSTPrequest) (*FSTPresponse, error) {
 			break
 		}
 	}
-	fmt.Println("recieved:", recieved_data)
+	data := fmt.Sprint("\nrecieved: ", recieved_data)
+	str := fmt.Sprint("\nAKA: \n\t<", HeaderType(int(recieved_data[0])), ">\n\tPayload: ", string(recieved_data[FSTPHEaderSize:]))
+	color.Green(data)
+	color.Blue(str)
 	if err != nil {
 		client.Conn.Close()
 		return nil, err
@@ -53,16 +64,20 @@ func (client *FSTPclient) Request(request FSTPrequest) (*FSTPresponse, error) {
 	return &resp, nil
 }
 
-func IHaveRequest(props IHaveProps) FSTPrequest {
+func IHaveRequest(props IHaveProps) FSTPRequest {
 	header := FSTPHeader{
 		IHaveReq,
 	}
-	return FSTPrequest{header, &props}
+	return FSTPRequest{header, &props}
 }
 
-func IHaveFileRequest(props IHaveFileProps) FSTPrequest {
+func IHaveFileRequest(props IHaveFileReqProps) FSTPRequest {
 	header := FSTPHeader{
 		IHaveFileReq,
 	}
-	return FSTPrequest{header, &props}
+	return FSTPRequest{header, &props}
+}
+
+func AllFilesRequest() FSTPRequest {
+	return FSTPRequest{FSTPHeader{AllFilesReq}, nil}
 }

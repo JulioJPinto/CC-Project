@@ -30,7 +30,7 @@ func (m *StateManager) DeviceIsRegistered(deviceID fstp.DeviceIdentifier) bool {
 	return m.State.Registered_nodes.AnyMatch(f)
 }
 
-func (m *StateManager) FileIsRegistered(hash fstp.Hash) bool {
+func (m *StateManager) FileIsRegistered(hash fstp.FileHash) bool {
 	_, ok := m.State.Registered_files[hash]
 	return ok
 }
@@ -70,6 +70,11 @@ func (m *StateManager) BatchRegisterFileSegments(device fstp.DeviceIdentifier, s
 	}
 	return nil
 }
+
+func (m *StateManager) GetAllFiles() map[fstp.FileHash]fstp.FileMetaData {
+	return m.State.Registered_files
+}
+
 func (m *StateManager) DumpToFile() error {
 	// Serialize the state to bytes
 	bytes, err := m.State.Serialize()
