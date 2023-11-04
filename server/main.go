@@ -15,8 +15,10 @@ var s_manager *state_manager.StateManager
 func (s *handler) HandleRequest(conn net.Conn, req fstp.FSTPrequest) fstp.FSTPresponse {
 	fmt.Println("handler: ", &s, "a fazer cenas com ", req.Header, " & ", req.Payload, "de", conn.RemoteAddr())
 	device := fstp.DeviceIdentifier(conn.RemoteAddr().String())
-
+	fmt.Println("device: ", device)
 	if !s_manager.DeviceIsRegistered(device) {
+		fmt.Println("registering device: ", device)
+
 		s_manager.RegisterDevice(fstp.Device{IP: string(device)})
 	}
 
@@ -26,12 +28,9 @@ func (s *handler) HandleRequest(conn net.Conn, req fstp.FSTPrequest) fstp.FSTPre
 	case fstp.IHaveFileReq:
 		x, ok := req.Payload.(*fstp.IHaveFileProps)
 		if ok {
-			err := s_manager.RegisterFile(device, fstp.FileMetaData(*x))
-			if err != nil {
-				return fstp.NewErrorResponse(err)
-			}
-			s_manager.DumpToFile()
+			return s.HandleIHaveFileRequest(device, x)
 		} else {
+			s_manager.DumpToFile()
 			return fstp.FSTPresponse(fstp.FSTPresponse{Header: fstp.FSTPHeader{Flags: fstp.ErrResp}, Payload: nil})
 		}
 
@@ -40,6 +39,17 @@ func (s *handler) HandleRequest(conn net.Conn, req fstp.FSTPrequest) fstp.FSTPre
 	// resp.Header = fstp.FSTPHeader{Flags: fstp.IHave}
 	return fstp.FSTPresponse(fstp.FSTPresponse{Header: fstp.FSTPHeader{Flags: fstp.OKResp}})
 }
+
+func (s *handler) HandleIHaveFileRequest(device fstp.DeviceIdentifier, req *fstp.IHaveFileProps) fstp.FSTPresponse {
+	err := s_manager.RegisterFile(device, fstp.FileMetaData(*req))
+	s_manager.DumpToFile()
+
+	if err != nil {
+		return fstp.NewErrorResponse(err)
+	}
+	return fstp.NewOkResponse()
+}
+
 func main() {
 	s_manager = state_manager.NewManager("db.json")
 	// s_manager.Load()

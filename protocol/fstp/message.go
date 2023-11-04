@@ -47,6 +47,10 @@ func NewErrorResponse(err error) FSTPresponse {
 	return FSTPresponse{FSTPHeader{ErrResp}, &ErrorResponse{err.Error()}}
 }
 
+func NewOkResponse() FSTPresponse{
+	return FSTPresponse{FSTPHeader{OKResp}, nil}
+}
+
 const FSTPHEaderSize = 5 // 5 bytes
 
 type IHaveProps struct {

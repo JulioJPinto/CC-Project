@@ -2,6 +2,7 @@ package state_manager
 
 import (
 	"cc_project/protocol/fstp"
+	"fmt"
 	"os"
 )
 
@@ -20,6 +21,7 @@ func (m *StateManager) Connect() error {
 
 func (m *StateManager) RegisterDevice(device fstp.Device) error {
 	m.State.Registered_nodes.Add(device)
+	fmt.Println(*m.State.Registered_nodes)
 	return nil
 }
 
@@ -28,7 +30,15 @@ func (m *StateManager) DeviceIsRegistered(deviceID fstp.DeviceIdentifier) bool {
 	return m.State.Registered_nodes.AnyMatch(f)
 }
 
+func (m *StateManager) FileIsRegistered(hash fstp.Hash) bool {
+	_, ok := m.State.Registered_files[hash]
+	return ok
+}
+
 func (m *StateManager) RegisterFile(device fstp.DeviceIdentifier, file_info fstp.FileMetaData) error {
+	if m.FileIsRegistered(file_info.Hash) {
+		return ErrFileAlreadyRegistered
+	}
 	file_info.OriginatorIP = string(device)
 	f := func(d fstp.Device) bool { return d.GetIdentifier() == device }
 	if !m.State.Registered_nodes.AnyMatch(f) {

@@ -1,6 +1,5 @@
 package fstp
 
-
 type Device struct {
 	IP string `json:"IP"`
 }
@@ -11,7 +10,6 @@ func (d *Device) GetIdentifier() DeviceIdentifier {
 	return DeviceIdentifier(d.IP)
 }
 
-
 type FileInfo struct {
 	Id uint64 `json:"Id"`
 }
@@ -21,7 +19,7 @@ type FileMetaData struct {
 	Hash          Hash   `json:"Hash"` // Primary Key
 	Name          string `json:"Name"`
 	Length        int32  `json:"Length"`
-	OriginatorIP  string `json:"origintorIP"` //IP
+	OriginatorIP  string `json:"originatorIP"` //IP
 	SegmentHashes []Hash `json:"SegmentHashes"`
 }
 

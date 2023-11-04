@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"hash/crc32"
 	"os"
+	"path/filepath"
 )
 
 func main() {
@@ -28,6 +29,8 @@ func HashFile(path string) (*fstp.FileMetaData, error) {
 	}
 	defer file.Close()
 
+	file_name := filepath.Base(path)
+
 	// Create a buffer to read 128 bytes at a time
 	buffer := make([]byte, 128)
 	hasher := crc32.NewIEEE() // Use CRC32 hash
@@ -38,9 +41,9 @@ func HashFile(path string) (*fstp.FileMetaData, error) {
 	// Create a FileMetaData instance
 	fileMetaData := fstp.FileMetaData{
 		// Initialize other fields as needed
-		Name:          "your_file_name_here",
+		Name:          file_name,
 		Length:        0, // To be updated
-		OriginatorIP:  "your_originator_ip_here",
+		OriginatorIP:  "PLACEHOLDER",
 		SegmentHashes: []fstp.Hash{},
 	}
 

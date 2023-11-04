@@ -31,6 +31,7 @@ func (s *State) Deserialize(data []byte) error {
 var (
 	ErrBadSchema          = helpers.WrapError{Msg: "bad schema"}
 	ErrFileDoesNotExist   = helpers.WrapError{Msg: "file does not exist"}
+	ErrFileAlreadyRegistered = helpers.WrapError{Msg: "file already registered"}
 	ErrInvalidParameters  = helpers.WrapError{Msg: "invalid parameters"}
 	ErrInvalidSegmentHash = helpers.WrapError{Msg: "invalid segment hash"}
 	ErrNodeNotRegistered  = helpers.WrapError{Msg: "node not yet registered"}
