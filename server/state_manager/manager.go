@@ -23,10 +23,15 @@ func (m *StateManager) RegisterDevice(device fstp.Device) error {
 	return nil
 }
 
+func (m *StateManager) DeviceIsRegistered(deviceID fstp.DeviceIdentifier) bool {
+	f := func(d fstp.Device) bool { return d.GetIdentifier() == deviceID }
+	return m.State.Registered_nodes.AnyMatch(f)
+}
+
 func (m *StateManager) RegisterFile(device fstp.DeviceIdentifier, file_info fstp.FileMetaData) error {
 	file_info.OriginatorIP = string(device)
 	f := func(d fstp.Device) bool { return d.GetIdentifier() == device }
-	if (!m.State.Registered_nodes.AnyMatch(f)){
+	if !m.State.Registered_nodes.AnyMatch(f) {
 		return ErrNodeNotRegistered
 	}
 	m.State.Registered_files[file_info.Hash] = file_info

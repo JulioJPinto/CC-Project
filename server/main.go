@@ -14,13 +14,19 @@ var s_manager *state_manager.StateManager
 // handleRequest(FSTPrequest) FSTPresponse
 func (s *handler) HandleRequest(conn net.Conn, req fstp.FSTPrequest) fstp.FSTPresponse {
 	fmt.Println("handler: ", &s, "a fazer cenas com ", req.Header, " & ", req.Payload, "de", conn.RemoteAddr())
+	device := fstp.DeviceIdentifier(conn.RemoteAddr().String())
+
+	if !s_manager.DeviceIsRegistered(device) {
+		s_manager.RegisterDevice(fstp.Device{IP: string(device)})
+	}
+
 	switch req.Header.Flags {
 	case fstp.IHaveReq:
 		// s_manager.RegisterFileSegment(fstp.DeviceIdentifier(conn.RemoteAddr().(*net.TCPAddr).IP), fstp.FileSegment{FirstByte: 0, FileId: 1, Hash: "aaaa"})
 	case fstp.IHaveFileReq:
 		x, ok := req.Payload.(*fstp.IHaveFileProps)
 		if ok {
-			err := s_manager.RegisterFile(fstp.DeviceIdentifier(conn.RemoteAddr().String()), fstp.FileMetaData(*x))
+			err := s_manager.RegisterFile(device, fstp.FileMetaData(*x))
 			if err != nil {
 				return fstp.NewErrorResponse(err)
 			}

@@ -1,36 +1,30 @@
 package helpers
 
-type Set[T any] struct {
-	slice []T
-	eq    func(a T, b T) bool
-}
-
-func NewSet[T any](func(a T, b T) bool) *Set[T] {
-	return &Set[T]{}
+type Set[T comparable] struct {
+	SetData []T `json:"SetData"`
 }
 
 func NewSetFromSlice[T comparable](v []T) *Set[T] {
-	ret := NewDefaultSet[T]()
+	ret := NewSet[T]()
 	for _, item := range v {
 		ret.Add(item)
 	}
 	return ret
 }
 
-func NewDefaultSet[T comparable]() *Set[T] {
-	eq := func(a T, b T) bool { return a == b }
-	return &Set[T]{make([]T, 0), eq}
+func NewSet[T comparable]() *Set[T] {
+	return &Set[T]{make([]T, 0)}
 }
 
 func (s *Set[T]) Slice() []T {
 	ret := make([]T, 0)
-	copy(s.slice, ret)
+	copy(s.SetData, ret)
 	return ret
 }
 
 func (s *Set[T]) Contains(elem T) bool {
-	for _, e := range s.slice {
-		if s.eq(e, elem) {
+	for _, e := range s.SetData {
+		if e == elem {
 			return true
 		}
 	}
@@ -38,7 +32,7 @@ func (s *Set[T]) Contains(elem T) bool {
 }
 
 func (s *Set[T]) AnyMatch(f func(T) bool) bool {
-	for _, item := range s.slice {
+	for _, item := range s.SetData {
 		if f(item) {
 			return true
 		}
@@ -49,24 +43,24 @@ func (s *Set[T]) AnyMatch(f func(T) bool) bool {
 func (s *Set[T]) Add(elem T) {
 	// Check if the element already exists in the set before adding it
 	if !s.Contains(elem) {
-		s.slice = append(s.slice, elem)
+		s.SetData = append(s.SetData, elem)
 	}
 }
 
 func (s *Set[T]) Union(other Set[T]) *Set[T] {
-	result := NewSet[T](s.eq)
-	for _, elem := range s.slice {
+	result := NewSet[T]()
+	for _, elem := range s.SetData {
 		result.Add(elem)
 	}
-	for _, elem := range other.slice {
+	for _, elem := range other.SetData {
 		result.Add(elem)
 	}
 	return result
 }
 
 func (s *Set[T]) Intersection(other Set[T]) *Set[T] {
-	result := NewSet[T](s.eq)
-	for _, elem := range s.slice {
+	result := NewSet[T]()
+	for _, elem := range s.SetData {
 		if other.Contains(elem) {
 			result.Add(elem)
 		}
@@ -91,10 +85,10 @@ func MapVals[T any](m map[any]T) []T {
 }
 
 func SliceContains[T comparable](s []T, e T) bool {
-    for _, a := range s {
-        if a == e {
-            return true
-        }
-    }
-    return false
+	for _, a := range s {
+		if a == e {
+			return true
+		}
+	}
+	return false
 }
