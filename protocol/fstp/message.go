@@ -127,3 +127,7 @@ func (message *FSTPmessage) Deserialize(byteArray []byte) error {
 	message.Payload = payload
 	return err
 }
+
+func PayloadSize(serializedHeader []byte) uint32 {
+	return binary.LittleEndian.Uint32(serializedHeader[1:FSTPHEaderSize])
+}

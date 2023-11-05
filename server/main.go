@@ -24,7 +24,6 @@ func (s *handler) HandleRequest(conn net.Conn, req fstp.FSTPRequest) fstp.FSTPre
 	device := fstp.DeviceIdentifier(conn.RemoteAddr().String())
 	if !s_manager.DeviceIsRegistered(device) {
 		fmt.Println("registering device: ", device)
-
 		s_manager.RegisterDevice(fstp.Device{IP: string(device)})
 	}
 
@@ -44,7 +43,6 @@ func (s *handler) HandleRequest(conn net.Conn, req fstp.FSTPRequest) fstp.FSTPre
 	default:
 		return fstp.NewErrorResponse(state_manager.ErrInvalidHeader)
 	}
-	
 
 	// resp := fstp.FSTPmessage{Payload: req.Payload}
 	// resp.Header = fstp.FSTPHeader{Flags: fstp.IHave}

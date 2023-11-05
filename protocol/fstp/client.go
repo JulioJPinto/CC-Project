@@ -28,7 +28,7 @@ func (client *FSTPclient) Request(request FSTPRequest) (*FSTPresponse, error) {
 	s, _ := req_msg.Serialize()
 
 	s_data := fmt.Sprint("\nsending: ", s)
-	s_str := fmt.Sprint("\nAKA Header: ", HeaderType(int(s[0])), "\nPayload: ", string(s[FSTPHEaderSize:]))
+	s_str := fmt.Sprint("\nAKA \n\t<", HeaderType(int(s[0])), ">\n\tPayload: ", string(s[FSTPHEaderSize:]))
 	color.Green(s_data)
 	color.Blue(s_str)
 

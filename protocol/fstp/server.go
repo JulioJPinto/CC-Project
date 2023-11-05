@@ -60,26 +60,28 @@ func (instance *fstp_routine) handleClient() {
 	defer instance.conn.Close()
 	fmt.Println("Accepted connection from", instance.conn.RemoteAddr())
 
-	var recieved_data []byte
-	buffer := make([]byte, buffer_limit) // Create a buffer to store incoming data
-
 	for {
-		for {
-			n, err := instance.conn.Read(buffer)
-			if err != nil {
-				fmt.Println("Error reading:", err)
-				return
-			}
-
-			recieved_data = append(recieved_data, buffer[:n]...)
-			if n != buffer_limit {
-				break
-			}
+		// var recieved_data []byte
+		header := make([]byte, FSTPHEaderSize)
+		n, err := instance.conn.Read(header)
+		if n != FSTPHEaderSize || err != nil {
+			fmt.Println("Error reading header", err)
+			return
 		}
-		fmt.Printf("header: %x payload: %s \n", recieved_data[0:FSTPHEaderSize], recieved_data[FSTPHEaderSize-1:])
+		payload_size := PayloadSize(header)
+		buffer := make([]byte, payload_size) // Create a buffer to store incoming data
+		_, err = instance.conn.Read(buffer)
+		if err != nil {
+			fmt.Println("Error reading:", err)
+			return
+		}
+
+		buffer = append(header, buffer...)
+
+		fmt.Printf("header: %x payload: %s \n", buffer[0:FSTPHEaderSize], buffer[FSTPHEaderSize-1:])
 
 		req_msg := FSTPmessage{}
-		req_msg.Deserialize(recieved_data)
+		req_msg.Deserialize(buffer)
 		req := FSTPRequest(req_msg)
 		resp := instance.handler.HandleRequest(instance.conn, req)
 
