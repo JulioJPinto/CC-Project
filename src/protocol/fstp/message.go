@@ -82,7 +82,7 @@ type WhoHasReqProps struct {
 type WhoHasRespProps map[FileHash]DeviceIdentifier
 
 type AllFilesRespProps struct {
-	Files map[Hash][]FileMetaData `json:"Files"`
+	Files map[FileHash]FileMetaData `json:"Files"`
 }
 
 func MessageType(byteArray []byte) byte {

@@ -8,12 +8,12 @@ import (
 	"path/filepath"
 )
 
-
 type Client struct {
-	state struct {
-		peers          helpers.Set[fstp.DeviceIdentifier]
-		known_files    map[fstp.FileHash]fstp.FileMetaData
-		known_segments map[fstp.DeviceIdentifier]fstp.FileSegment
+	State struct {
+		MyFiles       map[string]fstp.FileHash // paths to my files
+		Peers          helpers.Set[fstp.DeviceIdentifier]
+		KnownFiles    map[fstp.FileHash] fstp.FileMetaData
+		KnownSegments map[fstp.DeviceIdentifier] *fstp.FileSegment
 	}
 	FSTPclient *fstp.FSTPclient
 }
@@ -33,14 +33,14 @@ func MakeDirectoryAvailable(client *Client, directory string) error {
 		// Call HashFile for the encountered file
 		fdata, _ := fstp.HashFile(fp)
 		if err != nil {
-			fmt.Printf("Error hashing file %s: %v\n", fp, err)
+			return err
 		} else {
-			fmt.Printf("File hashed: %s\n", fp)
-			fmt.Printf("Hashed data: %+v\n", fdata)
 
 			fdata.OriginatorIP = fstp_client.Conn.LocalAddr().String()
 			fdata.Name = filepath.Base(fp)
 			fstp_client.Request(fstp.IHaveFileRequest(fstp.IHaveFileReqProps(*fdata)))
+			client.State.MyFiles[fp] = fdata.Hash
+			client.State.KnownFiles[fdata.Hash] = *fdata
 		}
 
 		return nil

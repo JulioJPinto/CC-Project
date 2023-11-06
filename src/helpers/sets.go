@@ -88,22 +88,6 @@ func (s *Set[T]) Intersection(other Set[T]) *Set[T] {
 	return result
 }
 
-func MapKeys[T comparable](m map[T]any) *Set[T] {
-	keys := make([]T, len(m))
-	for k := range m {
-		keys = append(keys, k)
-	}
-	return NewSetFromSlice(keys)
-}
-
-func MapVals[T any](m map[any]T) []T {
-	vals := make([]T, len(m))
-	for _, v := range m {
-		vals = append(vals, v)
-	}
-	return vals
-}
-
 func SliceContains[T comparable](s []T, e T) bool {
 	for _, a := range s {
 		if a == e {

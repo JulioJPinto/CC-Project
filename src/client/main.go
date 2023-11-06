@@ -22,6 +22,10 @@ func main() {
 	config := fstp.FSTPConfig{Host: "localhost", Port: "8080"}
 	var err error
 
+	resp,_ := client.FSTPclient.Request(fstp.AllFilesRequest())
+
+	all_files,_:=resp.Payload.(fstp.AllFilesRespProps)
+	helpers.MergeMaps[fstp.FileHash,fstp.FileMetaData](client.State.KnownFiles,all_files.Files) 
 	client.FSTPclient, err = fstp.NewFSTPClient(config)
 
 	if err != nil {
@@ -31,11 +35,6 @@ func main() {
 	if len(os.Args) > 1 {
 		lib.MakeDirectoryAvailable(client, os.Args[1])
 	}
-
-	fdata, _ := fstp.HashFile("/home/cralos/Uni/3Ano/CC/CC-Project/client_files/test_file.txt")
-	fdata.OriginatorIP = client.FSTPclient.Conn.LocalAddr().String()
-	fdata.Name = "test_file.txt"
-	client.FSTPclient.Request(fstp.AllFilesRequest())
 
 	reader := bufio.NewReader(os.Stdin)
 	for {

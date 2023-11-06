@@ -60,6 +60,7 @@ func (client *FSTPclient) Request(request FSTPRequest) (*FSTPresponse, error) {
 	}
 	resp_msg := &FSTPmessage{}
 	resp_msg.Deserialize(recieved_data)
+	
 	resp := FSTPresponse(*resp_msg)
 	return &resp, nil
 }
