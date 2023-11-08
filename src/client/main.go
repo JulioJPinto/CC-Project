@@ -17,6 +17,7 @@ var commands = map[string]func(*lib.Client, []string) helpers.StatusMessage{
 	"upload": lib.UploadFile,
 	"files":  lib.ListFiles,
 	"fetch":  lib.FetchFiles,
+	"who":    lib.WhoHas,
 }
 
 func main() {

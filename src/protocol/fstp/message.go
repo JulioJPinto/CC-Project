@@ -79,10 +79,14 @@ type IHaveSegmentsReqProps struct {
 type IHaveFileReqProps FileMetaData
 
 type WhoHasReqProps struct {
-	Files []FileHash `json:"Files"`
+	File FileHash `json:"File"`
 }
 
-type WhoHasRespProps map[FileHash][]DeviceIdentifier
+type WhoHasRespProps map[DeviceIdentifier][]FileSegment
+
+func NewWhoHasRequest(req WhoHasReqProps) FSTPRequest {
+	return FSTPRequest{FSTPHeader{Flags: WhoHasReq}, &req}
+}
 
 func NewWhoHasResponse(ret WhoHasRespProps) FSTPresponse {
 	return FSTPresponse{FSTPHeader{Flags: WhoHasResp}, ret}

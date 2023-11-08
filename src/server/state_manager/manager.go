@@ -30,11 +30,12 @@ func (m *StateManager) DeviceIsRegistered(deviceID fstp.DeviceIdentifier) bool {
 	return m.State.Registered_nodes.AnyMatch(f)
 }
 
-
-func (m* StateManager) LeaveNetwork(device fstp.DeviceIdentifier) error {
+func (m *StateManager) LeaveNetwork(device fstp.DeviceIdentifier) error {
 	f := func(d fstp.Device) bool { return d.GetIdentifier() == device }
-    m.State.Registered_nodes.RemoveIf(f)
-    return nil
+	m.State.Registered_nodes.RemoveIf(f)
+	delete(m.State.Nodes_segments, device)
+
+	return nil
 }
 
 func (m *StateManager) RegisterFile(device fstp.DeviceIdentifier, file_info fstp.FileMetaData) error {
@@ -47,9 +48,16 @@ func (m *StateManager) RegisterFile(device fstp.DeviceIdentifier, file_info fstp
 		return ErrNodeNotRegistered
 	}
 	m.State.Registered_files[file_info.Hash] = file_info
+	for i, s_hash := range file_info.SegmentHashes {
+		s := fstp.FileSegment{FirstByte: int64(i * fstp.SegmentLength), FileHash: file_info.Hash, Hash: s_hash}
+		p, ok := m.State.Nodes_segments[device]
+		if !ok {
+			p = make([]fstp.FileSegment, 1)
+		}
+		m.State.Nodes_segments[device] = append(p, s)
+	}
 	return nil
 }
-
 
 func (m *StateManager) FileIsRegistered(hash fstp.FileHash) bool {
 	_, ok := m.State.Registered_files[hash]
@@ -83,8 +91,23 @@ func (m *StateManager) GetAllFiles() map[fstp.FileHash]fstp.FileMetaData {
 	return m.State.Registered_files
 }
 
-func (m *StateManager) WhoHasFile(hash fstp.FileHash) []fstp.DeviceIdentifier {
-	return []fstp.DeviceIdentifier{}
+// type WhoHasRespProps map[FileHash](map[DeviceIdentifier]FileSegment)
+
+func (m *StateManager) WhoHasFile(hash fstp.FileHash) map[fstp.DeviceIdentifier][]fstp.FileSegment {
+	ret := make(map[fstp.DeviceIdentifier][]fstp.FileSegment)
+	for device, segments := range m.State.Nodes_segments {
+		for _, segment := range segments {
+			if segment.FileHash == hash {
+				_, ok := ret[device]
+				if !ok {
+					ret[device] = []fstp.FileSegment{segment}
+				} else {
+					ret[device] = append(ret[device], segment)
+				}
+			}
+		}
+	}
+	return ret
 }
 
 func (m *StateManager) DumpToFile() error {

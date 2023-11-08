@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 )
 
 type Client struct {
@@ -117,6 +118,24 @@ func ListFiles(client *Client, _ []string) helpers.StatusMessage {
 	ret := helpers.StatusMessage{}
 	for _, v := range client.State.KnownFiles {
 		fmt.Println(v.Name, ":", v.Hash)
+	}
+	return ret
+}
+
+func WhoHas(client *Client, files []string) helpers.StatusMessage {
+	ret := helpers.StatusMessage{}
+	for _, file := range files {
+		hash, _ := strconv.Atoi(file)
+		fdata, ok := client.State.KnownFiles[fstp.FileHash(hash)]
+		FetchFiles(client, nil)
+		resp, _ := client.FSTPclient.Request(fstp.NewWhoHasRequest(fstp.WhoHasReqProps{fstp.FileHash(hash)}))
+		pay, ok := resp.Payload.(*fstp.WhoHasRespProps)
+		fmt.Printf("pay: %v\n", pay)
+		if !ok {
+			ret.AddError(fmt.Errorf("file %s not found", file))
+			continue
+		}
+		fmt.Println(fdata.Name, ":", fdata.Hash)
 	}
 	return ret
 }

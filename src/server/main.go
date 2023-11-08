@@ -39,14 +39,9 @@ func (s *handler) HandleRequest(conn net.Conn, req fstp.FSTPRequest) fstp.FSTPre
 	case fstp.AllFilesReq:
 		return fstp.NewAllFilesResponse(s_manager.GetAllFiles())
 	case fstp.WhoHasReq:
-		x, ok := req.Payload.(*fstp.WhoHasReqProps)
-		ret := make(map[fstp.FileHash][]fstp.DeviceIdentifier)
+		req, ok := req.Payload.(*fstp.WhoHasReqProps)
+		var ret fstp.WhoHasRespProps = s_manager.WhoHasFile(req.File)
 		if ok {
-			for _, v := range x.Files {
-				if len(s_manager.WhoHasFile(v)) > 0 {
-					ret[v] = s_manager.WhoHasFile(v)
-				}
-			}
 			return fstp.NewWhoHasResponse(ret)
 		} else {
 			s_manager.DumpToFile()
