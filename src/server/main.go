@@ -55,13 +55,12 @@ func (s *handler) HandleRequest(conn net.Conn, req fstp.FSTPRequest) fstp.FSTPre
 	default:
 		return fstp.NewErrorResponse(state_manager.ErrInvalidHeader)
 	}
-
-	// resp := fstp.FSTPmessage{Payload: req.Payload}
-	// resp.Header = fstp.FSTPHeader{Flags: fstp.IHave}
-	return fstp.FSTPresponse(fstp.FSTPresponse{Header: fstp.FSTPHeader{Flags: fstp.OKResp}})
 }
 
 func (s *handler) HandleShutdown(conn net.Conn, err error) {
+	device := fstp.DeviceIdentifier(conn.RemoteAddr().String())
+	s_manager.LeaveNetwork(device)
+	fmt.Println(device, "left the network")
 
 }
 

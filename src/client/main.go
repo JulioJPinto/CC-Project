@@ -25,12 +25,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	client.FSTPclient, err = fstp.NewClient(config)
-
-	if err != nil {
-		color.Red(err.Error())
-		return
-	}
 	if len(os.Args) > 1 {
 		lib.MakeDirectoryAvailable(client, os.Args[1])
 	}

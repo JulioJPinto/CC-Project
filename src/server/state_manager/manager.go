@@ -30,9 +30,11 @@ func (m *StateManager) DeviceIsRegistered(deviceID fstp.DeviceIdentifier) bool {
 	return m.State.Registered_nodes.AnyMatch(f)
 }
 
-func (m *StateManager) FileIsRegistered(hash fstp.FileHash) bool {
-	_, ok := m.State.Registered_files[hash]
-	return ok
+
+func (m* StateManager) LeaveNetwork(device fstp.DeviceIdentifier) error {
+	f := func(d fstp.Device) bool { return d.GetIdentifier() == device }
+    m.State.Registered_nodes.RemoveIf(f)
+    return nil
 }
 
 func (m *StateManager) RegisterFile(device fstp.DeviceIdentifier, file_info fstp.FileMetaData) error {
@@ -46,6 +48,12 @@ func (m *StateManager) RegisterFile(device fstp.DeviceIdentifier, file_info fstp
 	}
 	m.State.Registered_files[file_info.Hash] = file_info
 	return nil
+}
+
+
+func (m *StateManager) FileIsRegistered(hash fstp.FileHash) bool {
+	_, ok := m.State.Registered_files[hash]
+	return ok
 }
 
 func (m *StateManager) RegisterFileSegment(device fstp.DeviceIdentifier, file_segment fstp.FileSegment) error {

@@ -67,6 +67,22 @@ func (s *Set[T]) Add(elem T) {
 	}
 }
 
+func (s *Set[T]) Remove(elem T){
+	for i, e := range s.data {
+        if e == elem {
+            s.data = append(s.data[:i], s.data[i+1:]...)
+        }
+    }
+}
+
+func (s *Set[T]) RemoveIf(f func(T) bool) {
+	for i, e := range s.data {
+        if f(e) {
+            s.data = append(s.data[:i], s.data[i+1:]...)
+        }
+    }
+}
+
 func (s *Set[T]) Union(other Set[T]) *Set[T] {
 	result := NewSet[T]()
 	for _, elem := range s.data {
