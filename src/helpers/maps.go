@@ -1,6 +1,6 @@
 package helpers
 
-func MapKeys[T comparable](m map[T]any) *Set[T] {
+func MapKeys[T comparable, T2 any](m map[T]T2) *Set[T] {
 	keys := make([]T, len(m))
 	for k := range m {
 		keys = append(keys, k)

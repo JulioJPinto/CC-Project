@@ -21,8 +21,6 @@ func (s *handler) HandleRequest(conn net.Conn, req fstp.FSTPRequest) fstp.FSTPre
 	color.Blue(str)
 	fmt.Println()
 
-	
-
 	device := fstp.DeviceIdentifier(conn.RemoteAddr().String())
 	if !s_manager.DeviceIsRegistered(device) {
 		fmt.Println("registering device: ", device)
@@ -42,8 +40,7 @@ func (s *handler) HandleRequest(conn net.Conn, req fstp.FSTPRequest) fstp.FSTPre
 		return fstp.NewAllFilesResponse(s_manager.GetAllFiles())
 	case fstp.WhoHasReq:
 		x, ok := req.Payload.(*fstp.WhoHasReqProps)
-		var ret map[fstp.FileHash][]fstp.DeviceIdentifier
-
+		ret := make(map[fstp.FileHash][]fstp.DeviceIdentifier)
 		if ok {
 			for _, v := range x.Files {
 				if len(s_manager.WhoHasFile(v)) > 0 {

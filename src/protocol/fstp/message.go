@@ -61,13 +61,18 @@ func NewOkResponse() FSTPresponse {
 	return FSTPresponse{FSTPHeader{OKResp}, nil}
 }
 
+type AllFilesRespProps struct {
+	Files map[FileHash]FileMetaData `json:"Files"`
+}
+
 func NewAllFilesResponse(files map[FileHash]FileMetaData) FSTPresponse {
-	return FSTPresponse{FSTPHeader{Flags: AllFilesResp}, files}
+	props := AllFilesRespProps{Files: files}
+	return FSTPresponse{FSTPHeader{Flags: AllFilesResp}, props}
 }
 
 const FSTPHEaderSize = 5 // 5 bytes
 
-type IHaveSegmentsProps struct {
+type IHaveSegmentsReqProps struct {
 	Segments []FileSegment `json:"segments"`
 }
 
@@ -79,12 +84,8 @@ type WhoHasReqProps struct {
 
 type WhoHasRespProps map[FileHash][]DeviceIdentifier
 
-func NewWhoHasResponse(ret WhoHasRespProps) FSTPresponse{
+func NewWhoHasResponse(ret WhoHasRespProps) FSTPresponse {
 	return FSTPresponse{FSTPHeader{Flags: WhoHasResp}, ret}
-}
-
-type AllFilesRespProps struct {
-	Files map[FileHash]FileMetaData `json:"Files"`
 }
 
 func MessageType(byteArray []byte) byte { return byteArray[0] }

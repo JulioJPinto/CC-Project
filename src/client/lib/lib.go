@@ -76,6 +76,7 @@ func MakeFileAvailable(client *Client, f_path string) error {
 		if err != nil {
 			return err
 		} else {
+			client.State.KnownFiles[fdata.Hash] = *fdata
 			fdata.OriginatorIP = fstp_client.Conn.LocalAddr().String()
 			fdata.Name = filepath.Base(f_path)
 			fstp_client.Request(fstp.IHaveFileRequest(fstp.IHaveFileReqProps(*fdata)))
@@ -84,17 +85,24 @@ func MakeFileAvailable(client *Client, f_path string) error {
 	return nil
 }
 
-func FetchFiles(client *Client) error {
+func FetchFiles(client *Client, _ []string) helpers.StatusMessage {
 	resp, err := client.FSTPclient.Request(fstp.AllFilesRequest())
+	ret := helpers.StatusMessage{}
 	if err != nil {
-		return err
+		ret.AddError(err)
+		return ret
 	}
-	all_files, ok := resp.Payload.(fstp.AllFilesRespProps)
+
+	all_files, ok := resp.Payload.(*fstp.AllFilesRespProps)
+
 	if !ok {
-		return fmt.Errorf("invalid payload type: %v", resp.Payload)
+		ret.AddError(fmt.Errorf("invalid payload type: %v", resp.Payload))
+		return ret
 	}
 	helpers.MergeMaps[fstp.FileHash, fstp.FileMetaData](client.State.KnownFiles, all_files.Files)
-	return nil
+	keys := helpers.MapKeys[fstp.FileHash](all_files.Files)
+	ret.AddMessage(nil, fmt.Sprint("fetched", keys))
+	return ret
 }
 
 func UploadFile(client *Client, args []string) helpers.StatusMessage {

@@ -16,6 +16,7 @@ import (
 var commands = map[string]func(*lib.Client, []string) helpers.StatusMessage{
 	"upload": lib.UploadFile,
 	"files":  lib.ListFiles,
+	"fetch":  lib.FetchFiles,
 }
 
 func main() {
@@ -34,8 +35,15 @@ func main() {
 		lib.MakeDirectoryAvailable(client, os.Args[1])
 	}
 
-	lib.FetchFiles(client)
+	status := lib.FetchFiles(client, nil)
+	color.Green(status.ShowMessages())
+	if status.Error() != nil {
+		color.Red(status.ShowErrors())
+	}
 
+	if err != nil {
+		color.Red(err.Error())
+	}
 	reader := bufio.NewReader(os.Stdin)
 	for {
 		line, err := reader.ReadString('\n')
