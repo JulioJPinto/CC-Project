@@ -14,6 +14,7 @@ type fstp_routine struct {
 
 type FSTPHandler interface {
 	HandleRequest(net.Conn, FSTPRequest) FSTPresponse
+	HandleShutdown(net.Conn, error)
 }
 
 // FSTPServer ...
@@ -24,7 +25,7 @@ type FSTPServer struct {
 }
 
 // New ...
-func New(config *FSTPConfig, handler FSTPHandler) *FSTPServer {
+func New(config *Config, handler FSTPHandler) *FSTPServer {
 	return &FSTPServer{
 		host:    config.Host,
 		port:    config.Port,
@@ -57,11 +58,14 @@ func (server *FSTPServer) Run() {
 const buffer_limit = 1024
 
 func (instance *fstp_routine) handleClient() {
+	var err error
+
+	defer instance.handler.HandleShutdown(instance.conn, err)
 	defer instance.conn.Close()
+
 	fmt.Println("Accepted connection from", instance.conn.RemoteAddr())
 
 	for {
-		// var recieved_data []byte
 		header := make([]byte, FSTPHEaderSize)
 		n, err := instance.conn.Read(header)
 		if n != FSTPHEaderSize || err != nil {
@@ -97,4 +101,5 @@ func (instance *fstp_routine) handleClient() {
 			return
 		}
 	}
+
 }

@@ -8,7 +8,7 @@ import (
 
 type State struct {
 	Registered_nodes *helpers.Set[fstp.Device]                    `json:"registered_nodes"`
-	Registered_files map[fstp.FileHash]fstp.FileMetaData              `json:"registered_files"` // mapeia a hash do ficheiro para os dados
+	Registered_files map[fstp.FileHash]fstp.FileMetaData          `json:"registered_files"` // mapeia a hash do ficheiro para os dados
 	Nodes_segments   map[fstp.DeviceIdentifier][]fstp.FileSegment `json:"nodes_segments"`   // mapeia o
 }
 
@@ -29,11 +29,12 @@ func (s *State) Deserialize(data []byte) error {
 }
 
 var (
-	ErrBadSchema          = helpers.WrapError{Msg: "bad schema"}
-	ErrFileDoesNotExist   = helpers.WrapError{Msg: "file does not exist"}
+	ErrBadSchema             = helpers.WrapError{Msg: "bad schema"}
+	ErrFileDoesNotExist      = helpers.WrapError{Msg: "file does not exist"}
 	ErrFileAlreadyRegistered = helpers.WrapError{Msg: "file already registered"}
-	ErrInvalidParameters  = helpers.WrapError{Msg: "invalid parameters"}
-	ErrInvalidSegmentHash = helpers.WrapError{Msg: "invalid segment hash"}
-	ErrInvalidHeader = helpers.WrapError{Msg: "invalid header"}
-	ErrNodeNotRegistered  = helpers.WrapError{Msg: "node not yet registered"}
+	ErrInvalidParameters     = helpers.WrapError{Msg: "invalid parameters"}
+	ErrInvalidSegmentHash    = helpers.WrapError{Msg: "invalid segment hash"}
+	ErrInvalidHeader         = helpers.WrapError{Msg: "invalid header"}
+	ErrInvalidPayload        = helpers.WrapError{Msg: "invalid payload"}
+	ErrNodeNotRegistered     = helpers.WrapError{Msg: "node not yet registered"}
 )

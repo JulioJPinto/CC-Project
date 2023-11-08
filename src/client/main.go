@@ -6,27 +6,25 @@ import (
 	"cc_project/helpers"
 	"cc_project/protocol/fstp"
 	"fmt"
-	"github.com/fatih/color"
 	"log"
 	"os"
 	"strings"
+
+	"github.com/fatih/color"
 )
 
 var commands = map[string]func(*lib.Client, []string) helpers.StatusMessage{
 	"upload": lib.UploadFile,
+	"files":  lib.ListFiles,
 }
 
-
 func main() {
-	client := &lib.Client{}
-	config := fstp.FSTPConfig{Host: "localhost", Port: "8080"}
-	var err error
-
-	resp,_ := client.FSTPclient.Request(fstp.AllFilesRequest())
-
-	all_files,_:=resp.Payload.(fstp.AllFilesRespProps)
-	helpers.MergeMaps[fstp.FileHash,fstp.FileMetaData](client.State.KnownFiles,all_files.Files) 
-	client.FSTPclient, err = fstp.NewFSTPClient(config)
+	config := fstp.Config{Host: "localhost", Port: "8080"}
+	client, err := lib.NewClient(config)
+	if err != nil {
+		log.Fatal(err)
+	}
+	client.FSTPclient, err = fstp.NewClient(config)
 
 	if err != nil {
 		color.Red(err.Error())
@@ -35,6 +33,8 @@ func main() {
 	if len(os.Args) > 1 {
 		lib.MakeDirectoryAvailable(client, os.Args[1])
 	}
+
+	lib.FetchFiles(client)
 
 	reader := bufio.NewReader(os.Stdin)
 	for {

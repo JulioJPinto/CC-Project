@@ -21,6 +21,8 @@ func (s *handler) HandleRequest(conn net.Conn, req fstp.FSTPRequest) fstp.FSTPre
 	color.Blue(str)
 	fmt.Println()
 
+	
+
 	device := fstp.DeviceIdentifier(conn.RemoteAddr().String())
 	if !s_manager.DeviceIsRegistered(device) {
 		fmt.Println("registering device: ", device)
@@ -28,8 +30,6 @@ func (s *handler) HandleRequest(conn net.Conn, req fstp.FSTPRequest) fstp.FSTPre
 	}
 
 	switch req.Header.Flags {
-	case fstp.IHaveReq:
-		// s_manager.RegisterFileSegment(fstp.DeviceIdentifier(conn.RemoteAddr().(*net.TCPAddr).IP), fstp.FileSegment{FirstByte: 0, FileId: 1, Hash: "aaaa"})
 	case fstp.IHaveFileReq:
 		x, ok := req.Payload.(*fstp.IHaveFileReqProps)
 		if ok {
@@ -40,6 +40,21 @@ func (s *handler) HandleRequest(conn net.Conn, req fstp.FSTPRequest) fstp.FSTPre
 		}
 	case fstp.AllFilesReq:
 		return fstp.NewAllFilesResponse(s_manager.GetAllFiles())
+	case fstp.WhoHasReq:
+		x, ok := req.Payload.(*fstp.WhoHasReqProps)
+		var ret map[fstp.FileHash][]fstp.DeviceIdentifier
+
+		if ok {
+			for _, v := range x.Files {
+				if len(s_manager.WhoHasFile(v)) > 0 {
+					ret[v] = s_manager.WhoHasFile(v)
+				}
+			}
+			return fstp.NewWhoHasResponse(ret)
+		} else {
+			s_manager.DumpToFile()
+			return fstp.NewErrorResponse(state_manager.ErrInvalidPayload)
+		}
 	default:
 		return fstp.NewErrorResponse(state_manager.ErrInvalidHeader)
 	}
@@ -47,6 +62,10 @@ func (s *handler) HandleRequest(conn net.Conn, req fstp.FSTPRequest) fstp.FSTPre
 	// resp := fstp.FSTPmessage{Payload: req.Payload}
 	// resp.Header = fstp.FSTPHeader{Flags: fstp.IHave}
 	return fstp.FSTPresponse(fstp.FSTPresponse{Header: fstp.FSTPHeader{Flags: fstp.OKResp}})
+}
+
+func (s *handler) HandleShutdown(conn net.Conn, err error) {
+
 }
 
 func (s *handler) HandleIHaveFileRequest(device fstp.DeviceIdentifier, req *fstp.IHaveFileReqProps) fstp.FSTPresponse {
@@ -63,7 +82,7 @@ func main() {
 	s_manager = state_manager.NewManager("db.json")
 	// s_manager.Load()
 	my_handler := handler{}
-	config := fstp.FSTPConfig{Host: "localhost", Port: "8080"}
+	config := fstp.Config{Host: "localhost", Port: "8080"}
 	server := fstp.New(&config, &my_handler)
 	server.Run()
 }

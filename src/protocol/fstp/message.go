@@ -8,7 +8,6 @@ import (
 )
 
 const (
-	IHaveReq     = 0b0001
 	IHaveFileReq = 0b0010
 	WhoHasReq    = 0b0011
 	AllFilesReq  = 0b0100
@@ -22,7 +21,6 @@ const (
 
 func HeaderType(flags int) string {
 	var m = map[int]string{
-		IHaveReq:     "IHaveReq",
 		IHaveFileReq: "IHaveFileReq",
 		WhoHasReq:    "WhoHasReq",
 		AllFilesReq:  "AllFilesReq",
@@ -69,8 +67,8 @@ func NewAllFilesResponse(files map[FileHash]FileMetaData) FSTPresponse {
 
 const FSTPHEaderSize = 5 // 5 bytes
 
-type IHaveProps struct {
-	Files []FileInfo `json:"Files"`
+type IHaveSegmentsProps struct {
+	Segments []FileSegment `json:"segments"`
 }
 
 type IHaveFileReqProps FileMetaData
@@ -79,15 +77,17 @@ type WhoHasReqProps struct {
 	Files []FileHash `json:"Files"`
 }
 
-type WhoHasRespProps map[FileHash]DeviceIdentifier
+type WhoHasRespProps map[FileHash][]DeviceIdentifier
+
+func NewWhoHasResponse(ret WhoHasRespProps) FSTPresponse{
+	return FSTPresponse{FSTPHeader{Flags: WhoHasResp}, ret}
+}
 
 type AllFilesRespProps struct {
 	Files map[FileHash]FileMetaData `json:"Files"`
 }
 
-func MessageType(byteArray []byte) byte {
-	return byteArray[0]
-}
+func MessageType(byteArray []byte) byte { return byteArray[0] }
 
 func (message *FSTPmessage) Serialize() ([]byte, error) {
 	tag := message.Header.Flags
@@ -104,7 +104,6 @@ func (message *FSTPmessage) Serialize() ([]byte, error) {
 }
 
 var tag_struct_map = map[int]any{
-	IHaveReq:     &IHaveProps{},
 	IHaveFileReq: &IHaveFileReqProps{},
 	WhoHasReq:    &WhoHasReqProps{},
 	WhoHasResp:   &WhoHasRespProps{},

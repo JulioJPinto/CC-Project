@@ -11,11 +11,22 @@ import (
 type Client struct {
 	State struct {
 		MyFiles       map[string]fstp.FileHash // paths to my files
-		Peers          helpers.Set[fstp.DeviceIdentifier]
-		KnownFiles    map[fstp.FileHash] fstp.FileMetaData
-		KnownSegments map[fstp.DeviceIdentifier] *fstp.FileSegment
+		Peers         helpers.Set[fstp.DeviceIdentifier]
+		KnownFiles    map[fstp.FileHash]fstp.FileMetaData
+		KnownSegments map[fstp.DeviceIdentifier]*fstp.FileSegment
 	}
 	FSTPclient *fstp.FSTPclient
+}
+
+func NewClient(config fstp.Config) (*Client, error) {
+	client := &Client{}
+	client.State.MyFiles = make(map[string]fstp.FileHash)
+	client.State.Peers = *(helpers.NewSet[fstp.DeviceIdentifier]())
+	client.State.KnownFiles = make(map[fstp.FileHash]fstp.FileMetaData)
+	client.State.KnownSegments = make(map[fstp.DeviceIdentifier]*fstp.FileSegment)
+	var err error
+	client.FSTPclient, err = fstp.NewClient(config)
+	return client, err
 }
 
 func MakeDirectoryAvailable(client *Client, directory string) error {
@@ -73,10 +84,31 @@ func MakeFileAvailable(client *Client, f_path string) error {
 	return nil
 }
 
+func FetchFiles(client *Client) error {
+	resp, err := client.FSTPclient.Request(fstp.AllFilesRequest())
+	if err != nil {
+		return err
+	}
+	all_files, ok := resp.Payload.(fstp.AllFilesRespProps)
+	if !ok {
+		return fmt.Errorf("invalid payload type: %v", resp.Payload)
+	}
+	helpers.MergeMaps[fstp.FileHash, fstp.FileMetaData](client.State.KnownFiles, all_files.Files)
+	return nil
+}
+
 func UploadFile(client *Client, args []string) helpers.StatusMessage {
 	ret := helpers.StatusMessage{}
 	for _, arg := range args {
 		ret.AddMessage(MakeFileAvailable(client, arg), fmt.Sprintf("File %s uploaded", arg))
+	}
+	return ret
+}
+
+func ListFiles(client *Client, _ []string) helpers.StatusMessage {
+	ret := helpers.StatusMessage{}
+	for _, v := range client.State.KnownFiles {
+		fmt.Println(v.Name, ":", v.Hash)
 	}
 	return ret
 }

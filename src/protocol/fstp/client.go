@@ -11,7 +11,7 @@ type FSTPclient struct {
 	Conn net.Conn
 }
 
-func NewFSTPClient(config FSTPConfig) (*FSTPclient, error) {
+func NewClient(config Config) (*FSTPclient, error) {
 	conn, err := net.Dial("tcp", config.ServerAdress())
 	if err != nil {
 		return nil, err
@@ -60,16 +60,9 @@ func (client *FSTPclient) Request(request FSTPRequest) (*FSTPresponse, error) {
 	}
 	resp_msg := &FSTPmessage{}
 	resp_msg.Deserialize(recieved_data)
-	
+
 	resp := FSTPresponse(*resp_msg)
 	return &resp, nil
-}
-
-func IHaveRequest(props IHaveProps) FSTPRequest {
-	header := FSTPHeader{
-		IHaveReq,
-	}
-	return FSTPRequest{header, &props}
 }
 
 func IHaveFileRequest(props IHaveFileReqProps) FSTPRequest {

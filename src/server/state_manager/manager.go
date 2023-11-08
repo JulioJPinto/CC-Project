@@ -75,6 +75,10 @@ func (m *StateManager) GetAllFiles() map[fstp.FileHash]fstp.FileMetaData {
 	return m.State.Registered_files
 }
 
+func (m *StateManager) WhoHasFile(hash fstp.FileHash) []fstp.DeviceIdentifier {
+	return []fstp.DeviceIdentifier{}
+}
+
 func (m *StateManager) DumpToFile() error {
 	// Serialize the state to bytes
 	bytes, err := m.State.Serialize()
