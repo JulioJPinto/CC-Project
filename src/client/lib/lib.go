@@ -123,16 +123,27 @@ func ListFiles(client *Client, _ []string) helpers.StatusMessage {
 }
 
 func WhoHas(client *Client, files []string) helpers.StatusMessage {
+	FetchFiles(client, nil)
 	ret := helpers.StatusMessage{}
-	for _, file := range files {
-		hash, _ := strconv.Atoi(file)
-		fdata, ok := client.State.KnownFiles[fstp.FileHash(hash)]
-		FetchFiles(client, nil)
-		resp, _ := client.FSTPclient.Request(fstp.NewWhoHasRequest(fstp.WhoHasReqProps{fstp.FileHash(hash)}))
+	for _, f := range files {
+		hash_i, err := strconv.Atoi(f)
+		var hash fstp.FileHash
+		if err != nil {
+			for _, file := range client.State.KnownFiles {
+				if file.Name == f {
+					hash = file.Hash
+					break
+				}
+			}
+		} else {
+			hash = fstp.FileHash(hash_i)
+		}
+		fdata := client.State.KnownFiles[fstp.FileHash(hash)]
+		resp, _ := client.FSTPclient.Request(fstp.NewWhoHasRequest(fstp.WhoHasReqProps{File: fstp.FileHash(hash)}))
 		pay, ok := resp.Payload.(*fstp.WhoHasRespProps)
 		fmt.Printf("pay: %v\n", pay)
 		if !ok {
-			ret.AddError(fmt.Errorf("file %s not found", file))
+			ret.AddError(fmt.Errorf("file %s not found", f))
 			continue
 		}
 		fmt.Println(fdata.Name, ":", fdata.Hash)
