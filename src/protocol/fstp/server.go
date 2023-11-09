@@ -13,7 +13,8 @@ type fstp_routine struct {
 }
 
 type FSTPHandler interface {
-	HandleRequest(FSTPrequest) FSTPresponse
+	HandleRequest(net.Conn, FSTPRequest) FSTPresponse
+	HandleShutdown(net.Conn, error)
 }
 
 // FSTPServer ...
@@ -24,7 +25,7 @@ type FSTPServer struct {
 }
 
 // New ...
-func New(config *FSTPConfig, handler FSTPHandler) *FSTPServer {
+func New(config *Config, handler FSTPHandler) *FSTPServer {
 	return &FSTPServer{
 		host:    config.Host,
 		port:    config.Port,
@@ -57,31 +58,36 @@ func (server *FSTPServer) Run() {
 const buffer_limit = 1024
 
 func (instance *fstp_routine) handleClient() {
+	var err error
+
+	defer instance.handler.HandleShutdown(instance.conn, err)
 	defer instance.conn.Close()
+
 	fmt.Println("Accepted connection from", instance.conn.RemoteAddr())
 
-	var recieved_data []byte
-	buffer := make([]byte, buffer_limit) // Create a buffer to store incoming data
-
 	for {
-		for {
-			n, err := instance.conn.Read(buffer)
-			if err != nil {
-				fmt.Println("Error reading:", err)
-				return
-			}
-
-			recieved_data = append(recieved_data, buffer[:n]...)
-			if n != buffer_limit {
-				break
-			}
+		header := make([]byte, FSTPHEaderSize)
+		n, err := instance.conn.Read(header)
+		if n != FSTPHEaderSize || err != nil {
+			fmt.Println("Error reading header", err)
+			return
 		}
-		fmt.Printf("header: %x payload: %s \n", recieved_data[0:FSTPHEaderSize], recieved_data[FSTPHEaderSize-1:])
+		payload_size := PayloadSize(header)
+		buffer := make([]byte, payload_size) // Create a buffer to store incoming data
+		_, err = instance.conn.Read(buffer)
+		if err != nil {
+			fmt.Println("Error reading:", err)
+			return
+		}
+
+		buffer = append(header, buffer...)
+
+		fmt.Printf("header: %x payload: %s \n", buffer[0:FSTPHEaderSize], buffer[FSTPHEaderSize-1:])
 
 		req_msg := FSTPmessage{}
-		req_msg.Deserialize(recieved_data)
-		req := FSTPrequest(req_msg)
-		resp := instance.handler.HandleRequest(req)
+		req_msg.Deserialize(buffer)
+		req := FSTPRequest(req_msg)
+		resp := instance.handler.HandleRequest(instance.conn, req)
 
 		resp_msg := FSTPmessage(resp)
 		response, err := resp_msg.Serialize()
@@ -95,4 +101,5 @@ func (instance *fstp_routine) handleClient() {
 			return
 		}
 	}
+	
 }

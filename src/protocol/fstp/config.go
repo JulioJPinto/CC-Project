@@ -2,13 +2,13 @@ package fstp
 
 import "fmt"
 
-// FSTPConfig ...
-type FSTPConfig struct {
+// Config ...
+type Config struct {
 	Host string
 	Port string
 }
 
-func (config *FSTPConfig) ServerAdress() string {
+func (config *Config) ServerAdress() string {
 	serverAddr := fmt.Sprintf("%s:%s", config.Host, config.Port)
 	return serverAddr
 }
