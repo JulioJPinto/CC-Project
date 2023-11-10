@@ -2,7 +2,7 @@ package main
 
 import (
 	"bufio"
-	"cc_project/client/lib"
+	"cc_project/client/communicaxons"
 	"cc_project/helpers"
 	"cc_project/protocol/fstp"
 	"fmt"
@@ -14,14 +14,15 @@ import (
 )
 
 var commands = map[string]func(*lib.Client, []string) helpers.StatusMessage{
-	"upload": lib.UploadFile,
-	"files":  lib.ListFiles,
-	"fetch":  lib.FetchFiles,
-	"who":    lib.WhoHas,
+	"upload": func(c *lib.Client, a []string) helpers.StatusMessage { return c.UploadFiles(a) },
+	"files":  func(c *lib.Client, a []string) helpers.StatusMessage { return c.ListFiles(a) },
+	"fetch":  func(c *lib.Client, a []string) helpers.StatusMessage { return c.FetchFiles(a) },
+	"who":    func(c *lib.Client, a []string) helpers.StatusMessage { return c.WhoHas(a) },
+	// "download", lib.Download
 }
 
 func main() {
-	config := &fstp.Config{"localhost", "8080"}
+	config := &fstp.Config{Host: "localhost", Port: "8080"}
 	if len(os.Args) > 1 {
 		var err error
 		config, err = fstp.ParseConfig(os.Args[1])
@@ -35,10 +36,10 @@ func main() {
 		log.Fatal(err)
 	}
 	if len(os.Args) > 2 {
-		lib.MakeDirectoryAvailable(client, os.Args[2])
+		client.MakeDirectoryAvailable(os.Args[2])
 	}
 
-	status := lib.FetchFiles(client, nil)
+	status := client.FetchFiles(nil)
 	color.Green(status.ShowMessages())
 	if status.Error() != nil {
 		color.Red(status.ShowErrors())
