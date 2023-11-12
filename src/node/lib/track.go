@@ -30,7 +30,7 @@ func NewClient(config fstp.Config) (*Client, error) {
 	return client, err
 }
 
-func MakeDirectoryAvailable(client *Client, directory string) error {
+func (client *Client) MakeDirectoryAvailable(directory string) error {
 	_, err := os.Stat(directory)
 	fstp_client := client.FSTPclient
 
@@ -64,7 +64,7 @@ func MakeDirectoryAvailable(client *Client, directory string) error {
 	return err
 }
 
-func MakeFileAvailable(client *Client, f_path string) error {
+func (client *Client) makeFileAvailable(f_path string) error {
 	fileInfo, err := os.Stat(f_path)
 	fstp_client := client.FSTPclient
 	if err != nil {
@@ -86,7 +86,7 @@ func MakeFileAvailable(client *Client, f_path string) error {
 	return nil
 }
 
-func FetchFiles(client *Client, _ []string) helpers.StatusMessage {
+func (client *Client) FetchFiles(_ []string) helpers.StatusMessage {
 	resp, err := client.FSTPclient.Request(fstp.AllFilesRequest())
 	ret := helpers.StatusMessage{}
 	if err != nil {
@@ -106,15 +106,16 @@ func FetchFiles(client *Client, _ []string) helpers.StatusMessage {
 	return ret
 }
 
-func UploadFile(client *Client, args []string) helpers.StatusMessage {
+func (client *Client) UploadFiles(args []string) helpers.StatusMessage {
 	ret := helpers.StatusMessage{}
 	for _, arg := range args {
-		ret.AddMessage(MakeFileAvailable(client, arg), fmt.Sprintf("File %s uploaded", arg))
+		ret.AddMessage(client.makeFileAvailable(arg), fmt.Sprintf("File %s uploaded", arg))
 	}
 	return ret
 }
 
-func ListFiles(client *Client, _ []string) helpers.StatusMessage {
+func (client *Client) ListFiles(_ []string) helpers.StatusMessage {
+	client.FetchFiles(nil)
 	ret := helpers.StatusMessage{}
 	for _, v := range client.State.KnownFiles {
 		fmt.Println(v.Name, ":", v.Hash)
@@ -122,8 +123,8 @@ func ListFiles(client *Client, _ []string) helpers.StatusMessage {
 	return ret
 }
 
-func WhoHas(client *Client, files []string) helpers.StatusMessage {
-	FetchFiles(client, nil)
+func (client *Client) WhoHas(files []string) helpers.StatusMessage {
+	client.FetchFiles(nil)
 	ret := helpers.StatusMessage{}
 	for _, f := range files {
 		hash_i, err := strconv.Atoi(f)

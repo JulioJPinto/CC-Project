@@ -8,15 +8,18 @@ import (
 )
 
 type FSTPclient struct {
-	Conn net.Conn
+	Conn     net.Conn
+	UDP_PORT int
 }
+
+const DefaultUDPPort = 9090
 
 func NewClient(config Config) (*FSTPclient, error) {
 	conn, err := net.Dial("tcp", config.ServerAdress())
 	if err != nil {
 		return nil, err
 	}
-	return &FSTPclient{conn}, nil
+	return &FSTPclient{Conn: conn, UDP_PORT: DefaultUDPPort}, nil
 }
 
 func (client *FSTPclient) Close() {
