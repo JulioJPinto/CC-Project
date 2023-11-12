@@ -2,7 +2,7 @@ package main
 
 import (
 	"bufio"
-	"cc_project/client/communicaxons"
+	"cc_project/node/lib"
 	"cc_project/helpers"
 	"cc_project/protocol/fstp"
 	"fmt"
