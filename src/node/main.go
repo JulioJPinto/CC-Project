@@ -2,9 +2,11 @@ package main
 
 import (
 	"bufio"
-	"cc_project/node/lib"
 	"cc_project/helpers"
+	"cc_project/node/lib"
 	"cc_project/protocol/fstp"
+	"cc_project/protocol/p2p"
+
 	"fmt"
 	"log"
 	"os"
@@ -38,6 +40,9 @@ func main() {
 	if len(os.Args) > 2 {
 		client.MakeDirectoryAvailable(os.Args[2])
 	}
+	
+	server := p2p.NewP2PServer(p2p.Config{Host: "localhost", Port: "9090"},&lib.Handler{})
+	go server.Run()
 
 	status := client.FetchFiles(nil)
 	color.Green(status.ShowMessages())
@@ -45,6 +50,12 @@ func main() {
 		color.Red(status.ShowErrors())
 	}
 	reader := bufio.NewReader(os.Stdin)
+
+	tui(reader, client)
+
+}
+
+func tui(reader *bufio.Reader, client *lib.Client) {
 	for {
 		line, err := reader.ReadString('\n')
 		if err != nil {

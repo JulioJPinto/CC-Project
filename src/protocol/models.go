@@ -1,4 +1,4 @@
-package fstp
+package protocol
 
 type Device struct {
 	IP string `json:"IP"`

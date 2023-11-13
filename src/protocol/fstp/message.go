@@ -1,6 +1,7 @@
 package fstp
 
 import (
+	"cc_project/protocol"
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
@@ -36,65 +37,65 @@ func HeaderType(flags int) string {
 	return ret
 }
 
-type FSTPHeader struct {
+type Header struct {
 	Flags uint8
 }
 
-// FSTPmessage implements
-type FSTPmessage struct {
-	Header  FSTPHeader
+// Message implements
+type Message struct {
+	Header  Header
 	Payload any //JSON Serializable
 }
 
-type FSTPRequest FSTPmessage
-type FSTPresponse FSTPmessage
+type Request Message
+type Response Message
 
 type ErrorResponse struct {
 	Err string `json:"error"`
 }
 
-func NewErrorResponse(err error) FSTPresponse {
-	return FSTPresponse{FSTPHeader{ErrResp}, &ErrorResponse{err.Error()}}
+func NewErrorResponse(err error) Response {
+	return Response{Header{ErrResp}, &ErrorResponse{err.Error()}}
 }
 
-func NewOkResponse() FSTPresponse {
-	return FSTPresponse{FSTPHeader{OKResp}, nil}
+func NewOkResponse() Response {
+	return Response{Header{OKResp}, nil}
 }
 
 type AllFilesRespProps struct {
-	Files map[FileHash]FileMetaData `json:"Files"`
+	Files map[protocol.FileHash]protocol.FileMetaData `json:"Files"`
 }
 
-func NewAllFilesResponse(files map[FileHash]FileMetaData) FSTPresponse {
+func NewAllFilesResponse(files map[protocol.FileHash]protocol.FileMetaData) Response {
 	props := AllFilesRespProps{Files: files}
-	return FSTPresponse{FSTPHeader{Flags: AllFilesResp}, props}
+	return Response{Header{Flags: AllFilesResp}, props}
 }
 
-const FSTPHEaderSize = 5 // 5 bytes
+const HeaderSize = 5 // 5 bytes
 
 type IHaveSegmentsReqProps struct {
-	Segments []FileSegment `json:"segments"`
+	Segments []protocol.FileSegment `json:"segments"`
 }
 
-type IHaveFileReqProps FileMetaData
+type IHaveFileReqProps protocol.FileMetaData
 
 type WhoHasReqProps struct {
-	File FileHash `json:"File"`
+	File protocol.FileHash `json:"File"`
 }
 
-type WhoHasRespProps map[DeviceIdentifier][]FileSegment
+type WhoHasRespProps map[protocol.DeviceIdentifier][]protocol.FileSegment
 
-func NewWhoHasRequest(req WhoHasReqProps) FSTPRequest {
-	return FSTPRequest{FSTPHeader{Flags: WhoHasReq}, &req}
+func NewWhoHasRequest(req WhoHasReqProps) Request {
+	return Request{Header{Flags: WhoHasReq}, &req}
 }
 
-func NewWhoHasResponse(ret WhoHasRespProps) FSTPresponse {
-	return FSTPresponse{FSTPHeader{Flags: WhoHasResp}, ret}
+func NewWhoHasResponse(ret WhoHasRespProps) Response {
+	return Response{Header{Flags: WhoHasResp}, ret}
 }
 
 func MessageType(byteArray []byte) byte { return byteArray[0] }
 
-func (message *FSTPmessage) Serialize() ([]byte, error) {
+func (message *Message) Serialize() ([]byte, error) {
 	tag := message.Header.Flags
 	if message.Payload == nil {
 		return []byte{tag, 0, 0, 0, 0}, nil
@@ -118,7 +119,7 @@ var tag_struct_map = map[int]any{
 	ErrResp:      &ErrorResponse{},
 }
 
-func (message *FSTPmessage) Deserialize(byteArray []byte) error {
+func (message *Message) Deserialize(byteArray []byte) error {
 	message.Header.Flags = MessageType(byteArray)
 	var err error = nil
 	var payload any // json serializable
@@ -127,11 +128,11 @@ func (message *FSTPmessage) Deserialize(byteArray []byte) error {
 		return fmt.Errorf("invalid header type: %v", message.Header.Flags)
 	}
 	// err = payload.Deserialize(byteArray[FSTPHEaderSize:])
-	err = json.Unmarshal(byteArray[FSTPHEaderSize:], payload)
+	err = json.Unmarshal(byteArray[HeaderSize:], payload)
 	message.Payload = payload
 	return err
 }
 
 func PayloadSize(serializedHeader []byte) uint32 {
-	return binary.LittleEndian.Uint32(serializedHeader[1:FSTPHEaderSize])
+	return binary.LittleEndian.Uint32(serializedHeader[1:HeaderSize])
 }

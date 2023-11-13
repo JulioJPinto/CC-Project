@@ -2,6 +2,7 @@ package lib
 
 import (
 	"cc_project/helpers"
+	"cc_project/protocol"
 	"cc_project/protocol/fstp"
 	"fmt"
 	"os"
@@ -11,20 +12,20 @@ import (
 
 type Client struct {
 	State struct {
-		MyFiles       map[string]fstp.FileHash // paths to my files
-		Peers         helpers.Set[fstp.DeviceIdentifier]
-		KnownFiles    map[fstp.FileHash]fstp.FileMetaData
-		KnownSegments map[fstp.DeviceIdentifier]*fstp.FileSegment
+		MyFiles       map[string]protocol.FileHash // paths to my files
+		Peers         helpers.Set[protocol.DeviceIdentifier]
+		KnownFiles    map[protocol.FileHash]protocol.FileMetaData
+		KnownSegments map[protocol.DeviceIdentifier]*protocol.FileSegment
 	}
 	FSTPclient *fstp.FSTPclient
 }
 
 func NewClient(config fstp.Config) (*Client, error) {
 	client := &Client{}
-	client.State.MyFiles = make(map[string]fstp.FileHash)
-	client.State.Peers = *(helpers.NewSet[fstp.DeviceIdentifier]())
-	client.State.KnownFiles = make(map[fstp.FileHash]fstp.FileMetaData)
-	client.State.KnownSegments = make(map[fstp.DeviceIdentifier]*fstp.FileSegment)
+	client.State.MyFiles = make(map[string]protocol.FileHash)
+	client.State.Peers = *(helpers.NewSet[protocol.DeviceIdentifier]())
+	client.State.KnownFiles = make(map[protocol.FileHash]protocol.FileMetaData)
+	client.State.KnownSegments = make(map[protocol.DeviceIdentifier]*protocol.FileSegment)
 	var err error
 	client.FSTPclient, err = fstp.NewClient(config)
 	return client, err
@@ -100,8 +101,8 @@ func (client *Client) FetchFiles(_ []string) helpers.StatusMessage {
 		ret.AddError(fmt.Errorf("invalid payload type: %v", resp.Payload))
 		return ret
 	}
-	helpers.MergeMaps[fstp.FileHash, fstp.FileMetaData](client.State.KnownFiles, all_files.Files)
-	keys := helpers.MapKeys[fstp.FileHash](all_files.Files)
+	helpers.MergeMaps[protocol.FileHash, protocol.FileMetaData](client.State.KnownFiles, all_files.Files)
+	keys := helpers.MapKeys[protocol.FileHash](all_files.Files)
 	ret.AddMessage(nil, fmt.Sprint("fetched", keys))
 	return ret
 }
@@ -128,7 +129,7 @@ func (client *Client) WhoHas(files []string) helpers.StatusMessage {
 	ret := helpers.StatusMessage{}
 	for _, f := range files {
 		hash_i, err := strconv.Atoi(f)
-		var hash fstp.FileHash
+		var hash protocol.FileHash
 		if err != nil {
 			for _, file := range client.State.KnownFiles {
 				if file.Name == f {
@@ -137,10 +138,10 @@ func (client *Client) WhoHas(files []string) helpers.StatusMessage {
 				}
 			}
 		} else {
-			hash = fstp.FileHash(hash_i)
+			hash = protocol.FileHash(hash_i)
 		}
-		fdata := client.State.KnownFiles[fstp.FileHash(hash)]
-		resp, _ := client.FSTPclient.Request(fstp.NewWhoHasRequest(fstp.WhoHasReqProps{File: fstp.FileHash(hash)}))
+		fdata := client.State.KnownFiles[protocol.FileHash(hash)]
+		resp, _ := client.FSTPclient.Request(fstp.NewWhoHasRequest(fstp.WhoHasReqProps{File: protocol.FileHash(hash)}))
 		pay, ok := resp.Payload.(*fstp.WhoHasRespProps)
 		fmt.Printf("pay: %v\n", pay)
 		if !ok {

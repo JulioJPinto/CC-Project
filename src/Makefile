@@ -1,8 +1,8 @@
-all: build-client build-server
+all: build-node build-tracker
 
-build-client:
-	go build -o ../bin/client ./client
+build-node:
+	go build -o ../bin/node ./node
 
 
-build-server:
-	go build -o ../bin/server ./server
+build-tracker:
+	go build -o ../bin/tracker ./tracker

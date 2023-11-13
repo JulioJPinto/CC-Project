@@ -40,3 +40,4 @@ func Deserialize(byteArray [25]byte) P2PHeader {
 
 	return h
 }
+

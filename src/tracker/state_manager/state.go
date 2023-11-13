@@ -2,21 +2,21 @@ package state_manager
 
 import (
 	"cc_project/helpers"
-	"cc_project/protocol/fstp"
+	"cc_project/protocol"
 	"encoding/json"
 )
 
 type State struct {
-	Registered_nodes *helpers.Set[fstp.Device]                    `json:"registered_nodes"`
-	Registered_files map[fstp.FileHash]fstp.FileMetaData          `json:"registered_files"` // mapeia a hash do ficheiro para os dados
-	Nodes_segments   map[fstp.DeviceIdentifier][]fstp.FileSegment `json:"nodes_segments"`   // mapeia o
+	Registered_nodes *helpers.Set[protocol.Device]                    `json:"registered_nodes"`
+	Registered_files map[protocol.FileHash]protocol.FileMetaData          `json:"registered_files"` // mapeia a hash do ficheiro para os dados
+	Nodes_segments   map[protocol.DeviceIdentifier][]protocol.FileSegment `json:"nodes_segments"`   // mapeia o
 }
 
 func newState() *State {
 	s := &State{}
-	s.Registered_nodes = helpers.NewSet[fstp.Device]()
-	s.Registered_files = make(map[fstp.FileHash]fstp.FileMetaData)
-	s.Nodes_segments = make(map[fstp.DeviceIdentifier][]fstp.FileSegment)
+	s.Registered_nodes = helpers.NewSet[protocol.Device]()
+	s.Registered_files = make(map[protocol.FileHash]protocol.FileMetaData)
+	s.Nodes_segments = make(map[protocol.DeviceIdentifier][]protocol.FileSegment)
 	return s
 }
 
