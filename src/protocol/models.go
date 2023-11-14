@@ -17,20 +17,20 @@ type FileInfo struct {
 type Hash uint32
 type FileHash uint32
 type FileMetaData struct {
-	Hash          FileHash   `json:"Hash"` // Primary Key
-	Name          string `json:"Name"`
-	Length        int32  `json:"Length"`
-	OriginatorIP  string `json:"originatorIP"` //IP
-	SegmentHashes []Hash `json:"SegmentHashes"`
+	Hash          FileHash `json:"Hash"` // Primary Key
+	Name          string   `json:"Name"`
+	Length        int32    `json:"Length"`
+	OriginatorIP  string   `json:"originatorIP"` //IP
+	SegmentHashes []Hash   `json:"SegmentHashes"`
 }
 
 // length of a file segment in bytes
 const SegmentLength = 128
 
 type FileSegment struct {
-	FirstByte int64 `json:"FirstByte"`
-	FileHash  FileHash  `json:"FileID"` // Foriegn Key refere um FileMetaData
-	Hash      Hash  `json:"Hash"`
+	FirstByte int64    `json:"FirstByte"`
+	FileHash  FileHash `json:"FileID"` // Foriegn Key refere um FileMetaData
+	Hash      Hash     `json:"Hash"`
 }
 
 func (s FileSegment) LastByte() int64 {

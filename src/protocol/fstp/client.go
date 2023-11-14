@@ -7,26 +7,26 @@ import (
 	"github.com/fatih/color"
 )
 
-type FSTPclient struct {
+type Client struct {
 	Conn     net.Conn
 	UDP_PORT int
 }
 
 const DefaultUDPPort = 9090
 
-func NewClient(config Config) (*FSTPclient, error) {
+func NewClient(config Config) (*Client, error) {
 	conn, err := net.Dial("tcp", config.ServerAdress())
 	if err != nil {
 		return nil, err
 	}
-	return &FSTPclient{Conn: conn, UDP_PORT: DefaultUDPPort}, nil
+	return &Client{Conn: conn, UDP_PORT: DefaultUDPPort}, nil
 }
 
-func (client *FSTPclient) Close() {
+func (client *Client) Close() {
 	client.Conn.Close()
 }
 
-func (client *FSTPclient) Request(request Request) (*Response, error) {
+func (client *Client) Request(request Request) (*Response, error) {
 	req_msg := Message(request)
 	s, _ := req_msg.Serialize()
 

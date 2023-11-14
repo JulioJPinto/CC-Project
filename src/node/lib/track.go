@@ -10,28 +10,8 @@ import (
 	"strconv"
 )
 
-type Client struct {
-	State struct {
-		MyFiles       map[string]protocol.FileHash // paths to my files
-		Peers         helpers.Set[protocol.DeviceIdentifier]
-		KnownFiles    map[protocol.FileHash]protocol.FileMetaData
-		KnownSegments map[protocol.DeviceIdentifier]*protocol.FileSegment
-	}
-	FSTPclient *fstp.FSTPclient
-}
 
-func NewClient(config fstp.Config) (*Client, error) {
-	client := &Client{}
-	client.State.MyFiles = make(map[string]protocol.FileHash)
-	client.State.Peers = *(helpers.NewSet[protocol.DeviceIdentifier]())
-	client.State.KnownFiles = make(map[protocol.FileHash]protocol.FileMetaData)
-	client.State.KnownSegments = make(map[protocol.DeviceIdentifier]*protocol.FileSegment)
-	var err error
-	client.FSTPclient, err = fstp.NewClient(config)
-	return client, err
-}
-
-func (client *Client) MakeDirectoryAvailable(directory string) error {
+func (client *Gaijo) MakeDirectoryAvailable(directory string) error {
 	_, err := os.Stat(directory)
 	fstp_client := client.FSTPclient
 
@@ -65,7 +45,7 @@ func (client *Client) MakeDirectoryAvailable(directory string) error {
 	return err
 }
 
-func (client *Client) makeFileAvailable(f_path string) error {
+func (client *Gaijo) makeFileAvailable(f_path string) error {
 	fileInfo, err := os.Stat(f_path)
 	fstp_client := client.FSTPclient
 	if err != nil {
@@ -87,7 +67,7 @@ func (client *Client) makeFileAvailable(f_path string) error {
 	return nil
 }
 
-func (client *Client) FetchFiles(_ []string) helpers.StatusMessage {
+func (client *Gaijo) FetchFiles(_ []string) helpers.StatusMessage {
 	resp, err := client.FSTPclient.Request(fstp.AllFilesRequest())
 	ret := helpers.StatusMessage{}
 	if err != nil {
@@ -107,7 +87,7 @@ func (client *Client) FetchFiles(_ []string) helpers.StatusMessage {
 	return ret
 }
 
-func (client *Client) UploadFiles(args []string) helpers.StatusMessage {
+func (client *Gaijo) UploadFiles(args []string) helpers.StatusMessage {
 	ret := helpers.StatusMessage{}
 	for _, arg := range args {
 		ret.AddMessage(client.makeFileAvailable(arg), fmt.Sprintf("File %s uploaded", arg))
@@ -115,7 +95,7 @@ func (client *Client) UploadFiles(args []string) helpers.StatusMessage {
 	return ret
 }
 
-func (client *Client) ListFiles(_ []string) helpers.StatusMessage {
+func (client *Gaijo) ListFiles(_ []string) helpers.StatusMessage {
 	client.FetchFiles(nil)
 	ret := helpers.StatusMessage{}
 	for _, v := range client.State.KnownFiles {
@@ -124,7 +104,7 @@ func (client *Client) ListFiles(_ []string) helpers.StatusMessage {
 	return ret
 }
 
-func (client *Client) WhoHas(files []string) helpers.StatusMessage {
+func (client *Gaijo) WhoHas(files []string) helpers.StatusMessage {
 	client.FetchFiles(nil)
 	ret := helpers.StatusMessage{}
 	for _, f := range files {
