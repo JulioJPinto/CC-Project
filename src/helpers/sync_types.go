@@ -98,6 +98,7 @@ type SyncList[V any] struct {
 func NewSyncList[V any]() *SyncList[V] {
 	return &SyncList[V]{
 		content: make([]V, 0),
+		RWMutex: sync.RWMutex{},
 	}
 }
 
@@ -129,4 +130,30 @@ func (l *SyncList[V]) Remove(index int) {
 	if index >= 0 && index < len(l.content) {
 		l.content = append(l.content[:index], l.content[index+1:]...)
 	}
+}
+
+type SyncQueue[T any] struct {
+	list SyncList[T] // You can replace "interface{}" with the specific type you want to store in the queue
+}
+
+func NewSyncQueue[T any]() *SyncQueue[T] {
+	return &SyncQueue[T]{
+		list: *NewSyncList[T](),
+	}
+}
+
+func (q *SyncQueue[T]) Enqueue(item T) {
+	q.list.Add(item)
+}
+
+func (q *SyncQueue[T]) Dequeue() (item T, ok bool) {
+	if q.list.Len() > 0 {
+		item, ok = q.list.Get(0)
+		q.list.Remove(0)
+	}
+	return
+}
+
+func (q *SyncQueue[T]) Len() int {
+	return q.list.Len()
 }

@@ -32,8 +32,8 @@ func (client *Gaijo) MakeDirectoryAvailable(directory string) error {
 			fdata.OriginatorIP = fstp_client.Conn.LocalAddr().String()
 			fdata.Name = filepath.Base(fp)
 			fstp_client.Request(fstp.IHaveFileRequest(fstp.IHaveFileReqProps(*fdata)))
-			client.State.MyFiles[fp] = fdata.Hash
-			client.State.KnownFiles[fdata.Hash] = *fdata
+			client.MyFiles[fp] = fdata.Hash
+			client.KnownFiles[fdata.Hash] = *fdata
 		}
 
 		return nil
@@ -58,7 +58,7 @@ func (client *Gaijo) makeFileAvailable(f_path string) error {
 		if err != nil {
 			return err
 		} else {
-			client.State.KnownFiles[fdata.Hash] = *fdata
+			client.KnownFiles[fdata.Hash] = *fdata
 			fdata.OriginatorIP = fstp_client.Conn.LocalAddr().String()
 			fdata.Name = filepath.Base(f_path)
 			fstp_client.Request(fstp.IHaveFileRequest(fstp.IHaveFileReqProps(*fdata)))
@@ -81,7 +81,7 @@ func (client *Gaijo) FetchFiles(_ []string) helpers.StatusMessage {
 		ret.AddError(fmt.Errorf("invalid payload type: %v", resp.Payload))
 		return ret
 	}
-	helpers.MergeMaps[protocol.FileHash, protocol.FileMetaData](client.State.KnownFiles, all_files.Files)
+	helpers.MergeMaps[protocol.FileHash, protocol.FileMetaData](client.KnownFiles, all_files.Files)
 	keys := helpers.MapKeys[protocol.FileHash](all_files.Files)
 	ret.AddMessage(nil, fmt.Sprint("fetched", keys))
 	return ret
@@ -98,7 +98,7 @@ func (client *Gaijo) UploadFiles(args []string) helpers.StatusMessage {
 func (client *Gaijo) ListFiles(_ []string) helpers.StatusMessage {
 	client.FetchFiles(nil)
 	ret := helpers.StatusMessage{}
-	for _, v := range client.State.KnownFiles {
+	for _, v := range client.KnownFiles {
 		fmt.Println(v.Name, ":", v.Hash)
 	}
 	return ret
@@ -111,7 +111,7 @@ func (client *Gaijo) WhoHas(files []string) helpers.StatusMessage {
 		hash_i, err := strconv.Atoi(f)
 		var hash protocol.FileHash
 		if err != nil {
-			for _, file := range client.State.KnownFiles {
+			for _, file := range client.KnownFiles {
 				if file.Name == f {
 					hash = file.Hash
 					break
@@ -120,7 +120,7 @@ func (client *Gaijo) WhoHas(files []string) helpers.StatusMessage {
 		} else {
 			hash = protocol.FileHash(hash_i)
 		}
-		fdata := client.State.KnownFiles[protocol.FileHash(hash)]
+		fdata := client.KnownFiles[protocol.FileHash(hash)]
 		resp, _ := client.FSTPclient.Request(fstp.NewWhoHasRequest(fstp.WhoHasReqProps{File: protocol.FileHash(hash)}))
 		pay, ok := resp.Payload.(*fstp.WhoHasRespProps)
 		fmt.Printf("pay: %v\n", pay)

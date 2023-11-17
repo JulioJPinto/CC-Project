@@ -49,7 +49,7 @@ func (m *StateManager) RegisterFile(device protocol.DeviceIdentifier, file_info 
 	}
 	m.State.Registered_files[file_info.Hash] = file_info
 	for i, s_hash := range file_info.SegmentHashes {
-		s := protocol.FileSegment{FirstByte: int64(i * protocol.SegmentLength), FileHash: file_info.Hash, Hash: s_hash}
+		s := protocol.FileSegment{BlockOffset: int64(i * protocol.SegmentLength), FileHash: file_info.Hash, Hash: s_hash}
 		p, ok := m.State.Nodes_segments[device]
 		if !ok {
 			p = make([]protocol.FileSegment, 1)
@@ -69,7 +69,7 @@ func (m *StateManager) RegisterFileSegment(device protocol.DeviceIdentifier, fil
 	if !ok {
 		return ErrFileDoesNotExist
 	}
-	offset := file_segment.FirstByte / protocol.SegmentLength
+	offset := file_segment.BlockOffset / protocol.SegmentLength
 	if x.SegmentHashes[offset] != file_segment.Hash {
 		return ErrInvalidSegmentHash
 	}

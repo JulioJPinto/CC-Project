@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"cc_project/helpers"
 	"cc_project/node/lib"
-	"cc_project/protocol/p2p"
+	"cc_project/node/p2p"
 	"cc_project/protocol/fstp"
 	"fmt"
 	"log"
@@ -22,12 +22,10 @@ var commands = map[string]func(*lib.Gaijo, []string) helpers.StatusMessage{
 	// "download", lib.Download
 }
 
-var State *lib.State
-
 func main() {
-	State = lib.NewState()
 	fstp_config := fstp.Config{Host: "localhost", Port: "8080"}
 	p2p_config := p2p.Config{Host: "localhost", Port: "9090"}
+	
 	if len(os.Args) > 1 {
 		var err error
 		fstp_config, err = fstp.ParseConfig(os.Args[1])
@@ -37,6 +35,7 @@ func main() {
 	}
 
 	gajo, err := lib.NewGaijo(fstp_config, p2p_config)
+
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -44,16 +43,15 @@ func main() {
 		gajo.MakeDirectoryAvailable(os.Args[2])
 	}
 
-	go lib.ListenOnUDP(p2p_config)
-
-
+	
 	status := gajo.FetchFiles(nil)
 	color.Green(status.ShowMessages())
 	if status.Error() != nil {
 		color.Red(status.ShowErrors())
 	}
 	reader := bufio.NewReader(os.Stdin)
-
+	
+	go gajo.ListenOnUDP()
 	tui(reader, gajo)
 
 }

@@ -6,36 +6,39 @@ import (
 )
 
 type Header struct {
-	is_request bool
-	file_id    protocol.FileHash
-	fst_byte   uint32
-	length     uint16
-	port       uint16
+	IsRequest     bool
+	FileId        protocol.FileHash
+	SegmentOffset uint32
+	Length        uint16
+	TimeStamp     uint32
 }
 
 func (h *Header) Serialize() ([]byte, error) {
 	header := []byte{}
-	if h.is_request {
+	if h.IsRequest {
 		header[0] = byte(0b0000_0000)
 	} else {
 		header[0] = byte(0b1111_1111)
 	}
 
-	binary.LittleEndian.PutUint32(header[1:5], uint32(h.file_id))
-	binary.LittleEndian.PutUint32(header[9:17], h.fst_byte)
-	binary.LittleEndian.PutUint16(header[17:25], h.length)
+	binary.LittleEndian.PutUint32(header[1:5], uint32(h.FileId))
+	binary.LittleEndian.PutUint32(header[5:9], h.SegmentOffset)
+	binary.LittleEndian.PutUint16(header[9:11], h.Length)
+	binary.LittleEndian.PutUint32(header[11:15], h.TimeStamp)
+	
 
 	return header, nil
 }
 
 func (h *Header) Deserialize(byteArray []byte) error {
-
-	h.file_id = protocol.FileHash(binary.LittleEndian.Uint32(byteArray[1:5]))
-	h.fst_byte = binary.LittleEndian.Uint32(byteArray[9:17])
-	h.length = binary.LittleEndian.Uint16(byteArray[17:25])
-
 	flags := byteArray[0]
-	h.is_request = flags == 0
+	h.IsRequest = flags == 0
+
+	h.FileId = protocol.FileHash(binary.LittleEndian.Uint32(byteArray[1:5]))
+	h.SegmentOffset = binary.LittleEndian.Uint32(byteArray[5:9] )
+	h.Length = binary.LittleEndian.Uint16(byteArray[9:11])
+	h.TimeStamp = binary.LittleEndian.Uint32(byteArray[11:15])
+
 	// Check the first byte to determine the flags (e.g., 0b1000_0000)
 	// You can implement logic here to extract any additional fields based on flags.
 
@@ -46,7 +49,7 @@ type Request Message
 type Response Message
 
 type Message struct {
-	Header  Header
+	Header
 	Payload []byte //JSON Serializable
 }
 
@@ -73,13 +76,13 @@ func (m *Message) Deserialize(bytes []byte) error {
 	return nil
 }
 
-func GimmeFileSegmentRequest(port uint16,segment protocol.FileSegment) Request {
+func GimmeFileSegmentRequest(segment protocol.FileSegment, time_stamp uint32) Request {
 	header := Header{
-		is_request: true,
-		file_id:    segment.FileHash,
-		fst_byte:   uint32(segment.FirstByte),
-		length:     1,
-		port: port,
+		IsRequest:     true,
+		FileId:        segment.FileHash,
+		TimeStamp:     time_stamp,
+		SegmentOffset: uint32(segment.BlockOffset),
+		Length:        1,
 	}
 	return Request{Header: header, Payload: nil}
 }

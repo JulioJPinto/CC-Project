@@ -28,11 +28,11 @@ type FileMetaData struct {
 const SegmentLength = 128
 
 type FileSegment struct {
-	FirstByte int64    `json:"FirstByte"`
-	FileHash  FileHash `json:"FileID"` // Foriegn Key refere um FileMetaData
-	Hash      Hash     `json:"Hash"`
+	BlockOffset int64    `json:"BlockOffset"` //
+	FileHash    FileHash `json:"FileID"` // Foriegn Key refere um FileMetaData
+	Hash        Hash     `json:"Hash"`
 }
 
 func (s FileSegment) LastByte() int64 {
-	return s.FirstByte + SegmentLength - 1
+	return (s.BlockOffset+1)*SegmentLength - 1
 }
