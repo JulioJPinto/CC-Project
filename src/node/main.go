@@ -14,18 +14,17 @@ import (
 	"github.com/fatih/color"
 )
 
-var commands = map[string]func(*lib.Gaijo, []string) helpers.StatusMessage{
-	"upload": func(g *lib.Gaijo, a []string) helpers.StatusMessage { return g.UploadFiles(a) },
-	"files":  func(g *lib.Gaijo, a []string) helpers.StatusMessage { return g.ListFiles(a) },
-	"fetch":  func(g *lib.Gaijo, a []string) helpers.StatusMessage { return g.FetchFiles(a) },
-	"who":    func(g *lib.Gaijo, a []string) helpers.StatusMessage { return g.WhoHas(a) },
-	// "download", lib.Download
+var commands = map[string]func(*lib.Node, []string) helpers.StatusMessage{
+	"upload": func(g *lib.Node, a []string) helpers.StatusMessage { return g.UploadFiles(a) },
+	"files":  func(g *lib.Node, a []string) helpers.StatusMessage { return g.ListFiles(a) },
+	"fetch":  func(g *lib.Node, a []string) helpers.StatusMessage { return g.FetchFiles(a) },
+	"who":    func(g *lib.Node, a []string) helpers.StatusMessage { return g.WhoHas(a) },
+
 }
 
 func main() {
 	fstp_config := fstp.Config{Host: "localhost", Port: "8080"}
 	p2p_config := p2p.Config{Host: "localhost", Port: "9090"}
-	
 	if len(os.Args) > 1 {
 		var err error
 		fstp_config, err = fstp.ParseConfig(os.Args[1])
@@ -34,7 +33,7 @@ func main() {
 		}
 	}
 
-	gajo, err := lib.NewGaijo(fstp_config, p2p_config)
+	gajo, err := lib.NewNode(fstp_config, p2p_config)
 
 	if err != nil {
 		log.Fatal(err)
@@ -43,20 +42,19 @@ func main() {
 		gajo.MakeDirectoryAvailable(os.Args[2])
 	}
 
-	
 	status := gajo.FetchFiles(nil)
 	color.Green(status.ShowMessages())
 	if status.Error() != nil {
 		color.Red(status.ShowErrors())
 	}
 	reader := bufio.NewReader(os.Stdin)
-	
+
 	go gajo.ListenOnUDP()
 	tui(reader, gajo)
 
 }
 
-func tui(reader *bufio.Reader, client *lib.Gaijo) {
+func tui(reader *bufio.Reader, client *lib.Node) {
 	for {
 		line, err := reader.ReadString('\n')
 		if err != nil {

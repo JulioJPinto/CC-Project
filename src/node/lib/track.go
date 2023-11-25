@@ -10,8 +10,7 @@ import (
 	"strconv"
 )
 
-
-func (client *Gaijo) MakeDirectoryAvailable(directory string) error {
+func (client *Node) MakeDirectoryAvailable(directory string) error {
 	_, err := os.Stat(directory)
 	fstp_client := client.FSTPclient
 
@@ -45,7 +44,7 @@ func (client *Gaijo) MakeDirectoryAvailable(directory string) error {
 	return err
 }
 
-func (client *Gaijo) makeFileAvailable(f_path string) error {
+func (client *Node) makeFileAvailable(f_path string) error {
 	fileInfo, err := os.Stat(f_path)
 	fstp_client := client.FSTPclient
 	if err != nil {
@@ -67,7 +66,7 @@ func (client *Gaijo) makeFileAvailable(f_path string) error {
 	return nil
 }
 
-func (client *Gaijo) FetchFiles(_ []string) helpers.StatusMessage {
+func (client *Node) FetchFiles(_ []string) helpers.StatusMessage {
 	resp, err := client.FSTPclient.Request(fstp.AllFilesRequest())
 	ret := helpers.StatusMessage{}
 	if err != nil {
@@ -87,7 +86,7 @@ func (client *Gaijo) FetchFiles(_ []string) helpers.StatusMessage {
 	return ret
 }
 
-func (client *Gaijo) UploadFiles(args []string) helpers.StatusMessage {
+func (client *Node) UploadFiles(args []string) helpers.StatusMessage {
 	ret := helpers.StatusMessage{}
 	for _, arg := range args {
 		ret.AddMessage(client.makeFileAvailable(arg), fmt.Sprintf("File %s uploaded", arg))
@@ -95,7 +94,7 @@ func (client *Gaijo) UploadFiles(args []string) helpers.StatusMessage {
 	return ret
 }
 
-func (client *Gaijo) ListFiles(_ []string) helpers.StatusMessage {
+func (client *Node) ListFiles(_ []string) helpers.StatusMessage {
 	client.FetchFiles(nil)
 	ret := helpers.StatusMessage{}
 	for _, v := range client.KnownFiles {
@@ -104,7 +103,7 @@ func (client *Gaijo) ListFiles(_ []string) helpers.StatusMessage {
 	return ret
 }
 
-func (client *Gaijo) WhoHas(files []string) helpers.StatusMessage {
+func (client *Node) WhoHas(files []string) helpers.StatusMessage {
 	client.FetchFiles(nil)
 	ret := helpers.StatusMessage{}
 	for _, f := range files {
