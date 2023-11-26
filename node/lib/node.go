@@ -6,8 +6,8 @@ import (
 	"cc_project/node/p2p"
 	"cc_project/protocol"
 	"cc_project/protocol/fstp"
+	"encoding/json"
 	"fmt"
-	"net"
 	"time"
 )
 
@@ -15,7 +15,6 @@ type Node struct {
 	FSTPclient *fstp.Client
 	P2PConfig  p2p.Config
 	sender     *udp_uploader.Uploader
-	udp_conn   *net.UDPConn
 	Chanels    *helpers.SyncMap[protocol.FileHash, chan p2p.Message]
 
 	MyFiles map[string]protocol.FileHash // paths to my files
@@ -32,10 +31,14 @@ func NewNode(fstp_config fstp.Config, p2p_config p2p.Config) (*Node, error) {
 	client.KnownFiles = make(map[protocol.FileHash]protocol.FileMetaData)
 
 	client.Chanels = helpers.NewSyncMap[protocol.FileHash, chan p2p.Message]()
-
-	var err error
-	client.FSTPclient, err = fstp.NewClient(fstp_config)
+	var fstp_client *fstp.Client
+	var err error = nil
+	if fstp_client, err = fstp.NewClient(fstp_config); err != nil {
+		return nil, err
+	}
+	client.FSTPclient = fstp_client
 	client.P2PConfig = p2p_config
+	client.sender = udp_uploader.NewUploader(5)
 	return client, err
 }
 
@@ -73,14 +76,19 @@ func (node *Node) DownloadFile(file_hash protocol.FileHash) error {
 	return nil
 }
 
-func (node *Node) send_segment_requests(map[protocol.DeviceIdentifier][]protocol.FileSegment) {
-
-}
-
-func (node *Node) send_one_segment_request(protocol.DeviceIdentifier, protocol.FileSegment) {
+func (node *Node) send_segment_requests(m map[protocol.DeviceIdentifier][]protocol.FileSegment) {
+	for id, segments := range m {
+		for _, segment := range segments {
+			node.RequestSegment(id, segment)
+		}
+	}
 }
 
 func (node *Node) await_segment_responses(file protocol.FileMetaData) {
+	ch, _ := node.Chanels.Get(file.Hash)
+	for msg := range ch {
+		println(json.Marshal(msg))
+	}
 
 }
 
@@ -98,7 +106,7 @@ func (node *Node) Distribute(device_segments map[protocol.DeviceIdentifier][]pro
 	return ret
 }
 
-func (node *Node) RequestSegment(peer *net.UDPAddr, segment protocol.FileSegment) {
+func (node *Node) RequestSegment(peer protocol.DeviceIdentifier, segment protocol.FileSegment) {
 	timestamp := helpers.TrunkI64(time.Now().UnixMilli())
 	req := p2p.Message(p2p.GimmeFileSegmentRequest(segment, uint32(timestamp)))
 	x := &req
@@ -106,5 +114,5 @@ func (node *Node) RequestSegment(peer *net.UDPAddr, segment protocol.FileSegment
 	if err != nil {
 		return
 	}
-	node.udp_conn.Write(b)
+	node.sender.Send(string(peer), b)
 }

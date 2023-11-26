@@ -38,13 +38,13 @@ func (u *Uploader) sender() {
 	for {
 		message := <-u.queue
 		// UDP sending logic
-		serverAddr, err := net.ResolveUDPAddr("udp", message.Address)
+		destination, err := net.ResolveUDPAddr("udp", message.Address)
 		if err != nil {
 			fmt.Println("Error resolving server address:", err)
 			continue
 		}
 
-		conn, err := net.DialUDP("udp", nil, serverAddr)
+		conn, err := net.DialUDP("udp", nil, destination)
 		if err != nil {
 			fmt.Println("Error creating UDP connection:", err)
 			continue

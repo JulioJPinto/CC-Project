@@ -6,12 +6,12 @@ import (
 )
 
 type Header struct {
-	IsRequest     bool
-	Load          uint8
-	FileId        protocol.FileHash
-	SegmentOffset uint32
-	Length        uint16
-	TimeStamp     uint32
+	IsRequest     bool              `json:"IsRequest"`
+	Load          uint8             `json:"Load"`
+	FileId        protocol.FileHash `json:"FileId"`
+	SegmentOffset uint32            `json:"SegmentOffset"`
+	Length        uint16            `json:"Length"`
+	TimeStamp     uint32            `json:"TimeStamp"`
 }
 
 func (h *Header) Serialize() ([]byte, error) {
@@ -52,7 +52,7 @@ type Request Message
 type Response Message
 
 type Message struct {
-	Header
+	Header  `json:"Header"`
 	Payload []byte //JSON Serializable
 }
 

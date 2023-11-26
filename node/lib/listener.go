@@ -28,11 +28,11 @@ func (node *Node) ListenOnUDP() error {
 
 		data := buffer[:n]
 		fmt.Printf("Received %d bytes from %s: %s\n", n, addr.String(), string(data))
-		node.HandleUDPMessage(addr, data)
+		node.handleUDPMessage(addr, data)
 	}
 }
 
-func (node *Node) HandleUDPMessage(addr *net.UDPAddr, packet []byte) error {
+func (node *Node) handleUDPMessage(addr *net.UDPAddr, packet []byte) error {
 	message := p2p.Message{}
 	if err := message.Deserialize(packet); err != nil {
 		return err
