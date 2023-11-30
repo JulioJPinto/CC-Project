@@ -1,4 +1,4 @@
-package udp_uploader
+package helpers
 
 import (
 	"fmt"
