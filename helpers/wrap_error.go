@@ -16,7 +16,7 @@ func (err WrapError) Error() string {
 	}
 	return err.Msg
 }
-func (err WrapError) wrap(inner error) error {
+func (err WrapError) Wrap(inner error) error {
 	return WrapError{Msg: err.Msg, Err: inner}
 }
 func (err WrapError) Unwrap() error {

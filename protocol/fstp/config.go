@@ -16,16 +16,16 @@ func (config *Config) ServerAdress() string {
 	return serverAddr
 }
 
-func ParseConfig(serverAddr string) (*Config,error) {
+func ParseConfig(serverAddr string) (Config,error) {
 	var parsedConfig Config
 
 	// Assuming the serverAddr has the format "host:port"
 	host, port, err := net.SplitHostPort(serverAddr)
-	if err != nil {return nil, err
+	if err != nil {return Config{}, err
 	}
 
 	parsedConfig.Host = host
 	parsedConfig.Port = port
 
-	return &parsedConfig,nil
+	return parsedConfig,nil
 }

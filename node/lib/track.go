@@ -2,6 +2,7 @@ package lib
 
 import (
 	"cc_project/helpers"
+	"cc_project/protocol"
 	"cc_project/protocol/fstp"
 	"fmt"
 	"os"
@@ -9,28 +10,7 @@ import (
 	"strconv"
 )
 
-type Client struct {
-	State struct {
-		MyFiles       map[string]fstp.FileHash // paths to my files
-		Peers         helpers.Set[fstp.DeviceIdentifier]
-		KnownFiles    map[fstp.FileHash]fstp.FileMetaData
-		KnownSegments map[fstp.DeviceIdentifier]*fstp.FileSegment
-	}
-	FSTPclient *fstp.FSTPclient
-}
-
-func NewClient(config fstp.Config) (*Client, error) {
-	client := &Client{}
-	client.State.MyFiles = make(map[string]fstp.FileHash)
-	client.State.Peers = *(helpers.NewSet[fstp.DeviceIdentifier]())
-	client.State.KnownFiles = make(map[fstp.FileHash]fstp.FileMetaData)
-	client.State.KnownSegments = make(map[fstp.DeviceIdentifier]*fstp.FileSegment)
-	var err error
-	client.FSTPclient, err = fstp.NewClient(config)
-	return client, err
-}
-
-func (client *Client) MakeDirectoryAvailable(directory string) error {
+func (client *Node) MakeDirectoryAvailable(directory string) error {
 	_, err := os.Stat(directory)
 	fstp_client := client.FSTPclient
 
@@ -51,8 +31,8 @@ func (client *Client) MakeDirectoryAvailable(directory string) error {
 			fdata.OriginatorIP = fstp_client.Conn.LocalAddr().String()
 			fdata.Name = filepath.Base(fp)
 			fstp_client.Request(fstp.IHaveFileRequest(fstp.IHaveFileReqProps(*fdata)))
-			client.State.MyFiles[fp] = fdata.Hash
-			client.State.KnownFiles[fdata.Hash] = *fdata
+			client.MyFiles[fp] = fdata.Hash
+			client.KnownFiles[fdata.Hash] = *fdata
 		}
 
 		return nil
@@ -64,7 +44,7 @@ func (client *Client) MakeDirectoryAvailable(directory string) error {
 	return err
 }
 
-func (client *Client) makeFileAvailable(f_path string) error {
+func (client *Node) makeFileAvailable(f_path string) error {
 	fileInfo, err := os.Stat(f_path)
 	fstp_client := client.FSTPclient
 	if err != nil {
@@ -77,7 +57,7 @@ func (client *Client) makeFileAvailable(f_path string) error {
 		if err != nil {
 			return err
 		} else {
-			client.State.KnownFiles[fdata.Hash] = *fdata
+			client.KnownFiles[fdata.Hash] = *fdata
 			fdata.OriginatorIP = fstp_client.Conn.LocalAddr().String()
 			fdata.Name = filepath.Base(f_path)
 			fstp_client.Request(fstp.IHaveFileRequest(fstp.IHaveFileReqProps(*fdata)))
@@ -86,7 +66,7 @@ func (client *Client) makeFileAvailable(f_path string) error {
 	return nil
 }
 
-func (client *Client) FetchFiles(_ []string) helpers.StatusMessage {
+func (client *Node) FetchFiles(_ []string) helpers.StatusMessage {
 	resp, err := client.FSTPclient.Request(fstp.AllFilesRequest())
 	ret := helpers.StatusMessage{}
 	if err != nil {
@@ -100,13 +80,13 @@ func (client *Client) FetchFiles(_ []string) helpers.StatusMessage {
 		ret.AddError(fmt.Errorf("invalid payload type: %v", resp.Payload))
 		return ret
 	}
-	helpers.MergeMaps[fstp.FileHash, fstp.FileMetaData](client.State.KnownFiles, all_files.Files)
-	keys := helpers.MapKeys[fstp.FileHash](all_files.Files)
+	helpers.MergeMaps[protocol.FileHash, protocol.FileMetaData](client.KnownFiles, all_files.Files)
+	keys := helpers.MapKeys[protocol.FileHash](all_files.Files)
 	ret.AddMessage(nil, fmt.Sprint("fetched", keys))
 	return ret
 }
 
-func (client *Client) UploadFiles(args []string) helpers.StatusMessage {
+func (client *Node) UploadFiles(args []string) helpers.StatusMessage {
 	ret := helpers.StatusMessage{}
 	for _, arg := range args {
 		ret.AddMessage(client.makeFileAvailable(arg), fmt.Sprintf("File %s uploaded", arg))
@@ -114,33 +94,33 @@ func (client *Client) UploadFiles(args []string) helpers.StatusMessage {
 	return ret
 }
 
-func (client *Client) ListFiles(_ []string) helpers.StatusMessage {
+func (client *Node) ListFiles(_ []string) helpers.StatusMessage {
 	client.FetchFiles(nil)
 	ret := helpers.StatusMessage{}
-	for _, v := range client.State.KnownFiles {
+	for _, v := range client.KnownFiles {
 		fmt.Println(v.Name, ":", v.Hash)
 	}
 	return ret
 }
 
-func (client *Client) WhoHas(files []string) helpers.StatusMessage {
+func (client *Node) WhoHas(files []string) helpers.StatusMessage {
 	client.FetchFiles(nil)
 	ret := helpers.StatusMessage{}
 	for _, f := range files {
 		hash_i, err := strconv.Atoi(f)
-		var hash fstp.FileHash
+		var hash protocol.FileHash
 		if err != nil {
-			for _, file := range client.State.KnownFiles {
+			for _, file := range client.KnownFiles {
 				if file.Name == f {
 					hash = file.Hash
 					break
 				}
 			}
 		} else {
-			hash = fstp.FileHash(hash_i)
+			hash = protocol.FileHash(hash_i)
 		}
-		fdata := client.State.KnownFiles[fstp.FileHash(hash)]
-		resp, _ := client.FSTPclient.Request(fstp.NewWhoHasRequest(fstp.WhoHasReqProps{File: fstp.FileHash(hash)}))
+		fdata := client.KnownFiles[protocol.FileHash(hash)]
+		resp, _ := client.FSTPclient.Request(fstp.NewWhoHasRequest(fstp.WhoHasReqProps{File: protocol.FileHash(hash)}))
 		pay, ok := resp.Payload.(*fstp.WhoHasRespProps)
 		fmt.Printf("pay: %v\n", pay)
 		if !ok {

@@ -1,7 +1,7 @@
 package state_manager
 
 import (
-	"cc_project/protocol/fstp"
+	"cc_project/protocol"
 	"fmt"
 	"os"
 )
@@ -19,57 +19,57 @@ func (m *StateManager) Connect() error {
 	return nil
 }
 
-func (m *StateManager) RegisterDevice(device fstp.Device) error {
+func (m *StateManager) RegisterDevice(device protocol.Device) error {
 	m.State.Registered_nodes.Add(device)
 	fmt.Println(*m.State.Registered_nodes)
 	return nil
 }
 
-func (m *StateManager) DeviceIsRegistered(deviceID fstp.DeviceIdentifier) bool {
-	f := func(d fstp.Device) bool { return d.GetIdentifier() == deviceID }
+func (m *StateManager) DeviceIsRegistered(deviceID protocol.DeviceIdentifier) bool {
+	f := func(d protocol.Device) bool { return d.GetIdentifier() == deviceID }
 	return m.State.Registered_nodes.AnyMatch(f)
 }
 
-func (m *StateManager) LeaveNetwork(device fstp.DeviceIdentifier) error {
-	f := func(d fstp.Device) bool { return d.GetIdentifier() == device }
+func (m *StateManager) LeaveNetwork(device protocol.DeviceIdentifier) error {
+	f := func(d protocol.Device) bool { return d.GetIdentifier() == device }
 	m.State.Registered_nodes.RemoveIf(f)
 	delete(m.State.Nodes_segments, device)
 
 	return nil
 }
 
-func (m *StateManager) RegisterFile(device fstp.DeviceIdentifier, file_info fstp.FileMetaData) error {
+func (m *StateManager) RegisterFile(device protocol.DeviceIdentifier, file_info protocol.FileMetaData) error {
 	if m.FileIsRegistered(file_info.Hash) {
 		return ErrFileAlreadyRegistered
 	}
 	file_info.OriginatorIP = string(device)
-	f := func(d fstp.Device) bool { return d.GetIdentifier() == device }
+	f := func(d protocol.Device) bool { return d.GetIdentifier() == device }
 	if !m.State.Registered_nodes.AnyMatch(f) {
 		return ErrNodeNotRegistered
 	}
 	m.State.Registered_files[file_info.Hash] = file_info
 	for i, s_hash := range file_info.SegmentHashes {
-		s := fstp.FileSegment{FirstByte: int64(i * fstp.SegmentLength), FileHash: file_info.Hash, Hash: s_hash}
+		s := protocol.FileSegment{BlockOffset: int64(i * protocol.SegmentLength), FileHash: file_info.Hash, Hash: s_hash}
 		p, ok := m.State.Nodes_segments[device]
 		if !ok {
-			p = make([]fstp.FileSegment, 1)
+			p = make([]protocol.FileSegment, 1)
 		}
 		m.State.Nodes_segments[device] = append(p, s)
 	}
 	return nil
 }
 
-func (m *StateManager) FileIsRegistered(hash fstp.FileHash) bool {
+func (m *StateManager) FileIsRegistered(hash protocol.FileHash) bool {
 	_, ok := m.State.Registered_files[hash]
 	return ok
 }
 
-func (m *StateManager) RegisterFileSegment(device fstp.DeviceIdentifier, file_segment fstp.FileSegment) error {
+func (m *StateManager) RegisterFileSegment(device protocol.DeviceIdentifier, file_segment protocol.FileSegment) error {
 	x, ok := m.State.Registered_files[file_segment.FileHash]
 	if !ok {
 		return ErrFileDoesNotExist
 	}
-	offset := file_segment.FirstByte / fstp.SegmentLength
+	offset := file_segment.BlockOffset / protocol.SegmentLength
 	if x.SegmentHashes[offset] != file_segment.Hash {
 		return ErrInvalidSegmentHash
 	}
@@ -77,7 +77,7 @@ func (m *StateManager) RegisterFileSegment(device fstp.DeviceIdentifier, file_se
 	return nil
 }
 
-func (m *StateManager) BatchRegisterFileSegments(device fstp.DeviceIdentifier, segments []fstp.FileSegment) error {
+func (m *StateManager) BatchRegisterFileSegments(device protocol.DeviceIdentifier, segments []protocol.FileSegment) error {
 	for _, segment := range segments {
 		err := m.RegisterFileSegment(device, segment)
 		if err != nil {
@@ -87,20 +87,20 @@ func (m *StateManager) BatchRegisterFileSegments(device fstp.DeviceIdentifier, s
 	return nil
 }
 
-func (m *StateManager) GetAllFiles() map[fstp.FileHash]fstp.FileMetaData {
+func (m *StateManager) GetAllFiles() map[protocol.FileHash]protocol.FileMetaData {
 	return m.State.Registered_files
 }
 
 // type WhoHasRespProps map[FileHash](map[DeviceIdentifier]FileSegment)
 
-func (m *StateManager) WhoHasFile(hash fstp.FileHash) map[fstp.DeviceIdentifier][]fstp.FileSegment {
-	ret := make(map[fstp.DeviceIdentifier][]fstp.FileSegment)
+func (m *StateManager) WhoHasFile(hash protocol.FileHash) map[protocol.DeviceIdentifier][]protocol.FileSegment {
+	ret := make(map[protocol.DeviceIdentifier][]protocol.FileSegment)
 	for device, segments := range m.State.Nodes_segments {
 		for _, segment := range segments {
 			if segment.FileHash == hash {
 				_, ok := ret[device]
 				if !ok {
-					ret[device] = []fstp.FileSegment{segment}
+					ret[device] = []protocol.FileSegment{segment}
 				} else {
 					ret[device] = append(ret[device], segment)
 				}

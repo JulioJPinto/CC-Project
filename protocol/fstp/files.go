@@ -5,9 +5,10 @@ import (
 	"hash/crc32"
 	"os"
 	"path/filepath"
+	"cc_project/protocol"
 )
 
-func HashFile(path string) (*FileMetaData, error) {
+func HashFile(path string) (*protocol.FileMetaData, error) {
 	file, err := os.Open(path)
 	if err != nil {
 		fmt.Println("Error opening the file:", err)
@@ -25,12 +26,12 @@ func HashFile(path string) (*FileMetaData, error) {
 	fileHash := crc32.NewIEEE() // Use CRC32 hash
 
 	// Create a FileMetaData instance
-	fileMetaData := FileMetaData{
+	fileMetaData := protocol.FileMetaData{
 		// Initialize other fields as needed
 		Name:          file_name,
 		Length:        0, // To be updated
 		OriginatorIP:  "PLACEHOLDER",
-		SegmentHashes: []Hash{},
+		SegmentHashes: []protocol.Hash{},
 	}
 
 	// Read and hash 128-byte chunks of the file
@@ -43,7 +44,7 @@ func HashFile(path string) (*FileMetaData, error) {
 		// Hash the chunk
 		hasher.Reset()
 		hasher.Write(buffer[:n])
-		chunkHash := Hash(hasher.Sum32()) // Convert to the Hash type
+		chunkHash := protocol.Hash(hasher.Sum32()) // Convert to the Hash type
 
 		// Update the hash of the entire file
 		fileHash.Write(buffer[:n])
@@ -56,7 +57,7 @@ func HashFile(path string) (*FileMetaData, error) {
 	}
 
 	// Get the final hash of the entire file
-	fileChecksum := FileHash(fileHash.Sum32()) // Convert to the Hash type
+	fileChecksum := protocol.FileHash(fileHash.Sum32()) // Convert to the Hash type
 
 	// Set the Hash field in the FileMetaData
 	fileMetaData.Hash = fileChecksum

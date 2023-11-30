@@ -1,6 +1,7 @@
 package main
 
 import (
+	"cc_project/protocol"
 	"cc_project/protocol/fstp"
 	"cc_project/tracker/state_manager"
 	"fmt"
@@ -14,17 +15,17 @@ type handler struct{}
 var s_manager *state_manager.StateManager
 
 // handleRequest(FSTPrequest) FSTPresponse
-func (s *handler) HandleRequest(conn net.Conn, req fstp.FSTPRequest) fstp.FSTPresponse {
+func (s *handler) HandleRequest(conn net.Conn, req fstp.Request) fstp.Response {
 	fmt.Println()
 	color.Blue("Handling request")
 	str := fmt.Sprint("\theader: ", fstp.HeaderType(int(req.Header.Flags)), "\n\tdeserialized payload: ", req.Payload, "\n\tfrom: ", conn.RemoteAddr())
 	color.Blue(str)
 	fmt.Println()
 
-	device := fstp.DeviceIdentifier(conn.RemoteAddr().String())
+	device := protocol.DeviceIdentifier(conn.RemoteAddr().String())
 	if !s_manager.DeviceIsRegistered(device) {
 		fmt.Println("registering device: ", device)
-		s_manager.RegisterDevice(fstp.Device{IP: string(device)})
+		s_manager.RegisterDevice(protocol.Device{IP: string(device)})
 	}
 
 	switch req.Header.Flags {
@@ -34,7 +35,7 @@ func (s *handler) HandleRequest(conn net.Conn, req fstp.FSTPRequest) fstp.FSTPre
 			return s.HandleIHaveFileRequest(device, x)
 		} else {
 			s_manager.DumpToFile()
-			return fstp.FSTPresponse(fstp.FSTPresponse{Header: fstp.FSTPHeader{Flags: fstp.ErrResp}, Payload: nil})
+			return fstp.Response(fstp.Response{Header: fstp.Header{Flags: fstp.ErrResp}, Payload: nil})
 		}
 	case fstp.AllFilesReq:
 		return fstp.NewAllFilesResponse(s_manager.GetAllFiles())
@@ -53,14 +54,14 @@ func (s *handler) HandleRequest(conn net.Conn, req fstp.FSTPRequest) fstp.FSTPre
 }
 
 func (s *handler) HandleShutdown(conn net.Conn, err error) {
-	device := fstp.DeviceIdentifier(conn.RemoteAddr().String())
+	device := protocol.DeviceIdentifier(conn.RemoteAddr().String())
 	s_manager.LeaveNetwork(device)
 	fmt.Println(device, "left the network")
 
 }
 
-func (s *handler) HandleIHaveFileRequest(device fstp.DeviceIdentifier, req *fstp.IHaveFileReqProps) fstp.FSTPresponse {
-	err := s_manager.RegisterFile(device, fstp.FileMetaData(*req))
+func (s *handler) HandleIHaveFileRequest(device protocol.DeviceIdentifier, req *fstp.IHaveFileReqProps) fstp.Response {
+	err := s_manager.RegisterFile(device, protocol.FileMetaData(*req))
 	s_manager.DumpToFile()
 
 	if err != nil {
@@ -74,6 +75,6 @@ func main() {
 	// s_manager.Load()
 	my_handler := handler{}
 	config := fstp.Config{Host: "localhost", Port: "8080"}
-	server := fstp.New(&config, &my_handler)
+	server := fstp.NewServer(&config, &my_handler)
 	server.Run()
 }

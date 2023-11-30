@@ -2,8 +2,9 @@ package main
 
 import (
 	"bufio"
-	"cc_project/node/lib"
 	"cc_project/helpers"
+	"cc_project/node/lib"
+	"cc_project/node/p2p"
 	"cc_project/protocol/fstp"
 	"fmt"
 	"log"
@@ -13,38 +14,47 @@ import (
 	"github.com/fatih/color"
 )
 
-var commands = map[string]func(*lib.Client, []string) helpers.StatusMessage{
-	"upload": func(c *lib.Client, a []string) helpers.StatusMessage { return c.UploadFiles(a) },
-	"files":  func(c *lib.Client, a []string) helpers.StatusMessage { return c.ListFiles(a) },
-	"fetch":  func(c *lib.Client, a []string) helpers.StatusMessage { return c.FetchFiles(a) },
-	"who":    func(c *lib.Client, a []string) helpers.StatusMessage { return c.WhoHas(a) },
-	// "download", lib.Download
+var commands = map[string]func(*lib.Node, []string) helpers.StatusMessage{
+	"upload": func(g *lib.Node, a []string) helpers.StatusMessage { return g.UploadFiles(a) },
+	"files":  func(g *lib.Node, a []string) helpers.StatusMessage { return g.ListFiles(a) },
+	"fetch":  func(g *lib.Node, a []string) helpers.StatusMessage { return g.FetchFiles(a) },
+	"who":    func(g *lib.Node, a []string) helpers.StatusMessage { return g.WhoHas(a) },
+
 }
 
 func main() {
-	config := &fstp.Config{Host: "localhost", Port: "8080"}
+	fstp_config := fstp.Config{Host: "localhost", Port: "8080"}
+	p2p_config := p2p.Config{Host: "localhost", Port: "9090"}
 	if len(os.Args) > 1 {
 		var err error
-		config, err = fstp.ParseConfig(os.Args[1])
+		fstp_config, err = fstp.ParseConfig(os.Args[1])
 		if err != nil {
 			log.Fatal(err)
 		}
 	}
 
-	client, err := lib.NewClient(*config)
+	gajo, err := lib.NewNode(fstp_config, p2p_config)
+
 	if err != nil {
 		log.Fatal(err)
 	}
 	if len(os.Args) > 2 {
-		client.MakeDirectoryAvailable(os.Args[2])
+		gajo.MakeDirectoryAvailable(os.Args[2])
 	}
 
-	status := client.FetchFiles(nil)
+	status := gajo.FetchFiles(nil)
 	color.Green(status.ShowMessages())
 	if status.Error() != nil {
 		color.Red(status.ShowErrors())
 	}
 	reader := bufio.NewReader(os.Stdin)
+
+	go gajo.ListenOnUDP()
+	tui(reader, gajo)
+
+}
+
+func tui(reader *bufio.Reader, client *lib.Node) {
 	for {
 		line, err := reader.ReadString('\n')
 		if err != nil {
