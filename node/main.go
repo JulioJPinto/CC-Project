@@ -47,6 +47,6 @@ func main() {
 	reader := bufio.NewReader(os.Stdin)
 
 	go node.ListenOnUDP()
-	helpers.TUI[*lib.Node](reader, node, commands)
+	helpers.TUI(reader, node, commands)
 
 }
