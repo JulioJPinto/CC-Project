@@ -3,7 +3,7 @@ package lib
 import (
 	"cc_project/helpers"
 	"cc_project/node/lib/udp_uploader"
-	"cc_project/node/p2p"
+	"cc_project/protocol/p2p"
 	"cc_project/protocol"
 	"cc_project/protocol/fstp"
 	"encoding/json"
