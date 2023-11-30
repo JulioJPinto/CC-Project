@@ -27,6 +27,7 @@ func (m *SyncMap[K, V]) Set(key K, value V) {
 	m.content[key] = value
 }
 
+
 func (m *SyncMap[K, V]) Delete(key K) {
 	m.Lock()
 	defer m.Unlock()
