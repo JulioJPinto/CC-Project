@@ -1,9 +1,7 @@
-package tui
+package helpers
 
 import (
 	"bufio"
-	"cc_project/helpers"
-	"cc_project/node/lib"
 	"fmt"
 	"log"
 	"strings"
@@ -11,8 +9,7 @@ import (
 	"github.com/fatih/color"
 )
 
-
-func TUI(reader *bufio.Reader, client *lib.Node, commands map[string]func(*lib.Node, []string) helpers.StatusMessage) {
+func TUI[T any](reader *bufio.Reader, client T, commands map[string]func(T, []string)  StatusMessage) {
 	for {
 		line, err := reader.ReadString('\n')
 		if err != nil {

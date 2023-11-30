@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"cc_project/helpers"
 	"cc_project/node/lib"
-	"cc_project/node/tui"
 	"cc_project/protocol/fstp"
 	"cc_project/protocol/p2p"
 	"log"
@@ -48,6 +47,6 @@ func main() {
 	reader := bufio.NewReader(os.Stdin)
 
 	go node.ListenOnUDP()
-	tui.TUI(reader, node, commands)
+	helpers.TUI[*lib.Node](reader, node, commands)
 
 }
