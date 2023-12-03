@@ -16,8 +16,7 @@ func (client *Node) ResolveFileID(name string) (protocol.FileHash, error) {
 	if err != nil {
 		for _, file := range client.KnownFiles {
 			if file.Name == name {
-				hash = file.Hash
-				break
+				return file.Hash, nil
 			}
 		}
 		return 0, fmt.Errorf("%v does not exist", name)
