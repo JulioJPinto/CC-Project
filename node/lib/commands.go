@@ -125,7 +125,7 @@ func (client *Node) WhoHas(files []string) helpers.StatusMessage {
 	for _, f := range files {
 		hash, err := client.ResolveFileID(f)
 		if err != nil {
-			ret.AddError(fmt.Errorf("file %s doesn't exist", f))
+			ret.AddError(err)
 			continue
 		}
 		fdata := client.KnownFiles[protocol.FileHash(hash)]
@@ -136,12 +136,23 @@ func (client *Node) WhoHas(files []string) helpers.StatusMessage {
 			ret.AddError(fmt.Errorf("file %s not found", f))
 			continue
 		}
+		print(pay)
 		fmt.Println(fdata.Name, ":", fdata.Hash)
 	}
 	return ret
 }
 
 func (client *Node) Download(args []string) helpers.StatusMessage {
-
-	return helpers.StatusMessage{}
+	ret := helpers.StatusMessage{}
+	hash, err := client.ResolveFileID(args[0])
+	if err != nil {
+		client.FetchFiles(nil)
+		hash, err = client.ResolveFileID(args[0])
+		ret.AddError(err)
+		if err != nil {
+			return ret
+		}
+	}
+	fmt.Println("downloading", hash)
+	return ret
 }
