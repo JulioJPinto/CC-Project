@@ -74,7 +74,7 @@ func main() {
 	s_manager = state_manager.NewManager("db.json")
 	// s_manager.Load()
 	my_handler := handler{}
-	config := fstp.Config{Host: "localhost", Port: "8080"}
+	config := fstp.Config{Host: "0.0.0.0", Port: "8080"}
 	server := fstp.NewServer(&config, &my_handler)
 	server.Run()
 }
