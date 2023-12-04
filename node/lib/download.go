@@ -6,6 +6,7 @@ import (
 	"cc_project/protocol/fstp"
 	"cc_project/protocol/p2p"
 	"fmt"
+	"os"
 	"time"
 )
 
@@ -37,8 +38,16 @@ func (node *Node) DownloadFile(file_hash protocol.FileHash) error {
 		err_resp := resp.Payload.(*fstp.ErrorResponse)
 		return fmt.Errorf(err_resp.Err)
 	}
+
+	path := "../client_files/downloaded/" + "test"
+	writef, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer writef.Close()
+
 	go node.send_segment_requests(p)
-	go node.await_segment_responses(file_meta_data)
+	go node.await_segment_responses(file_meta_data, path)
 
 	return nil
 }
@@ -51,14 +60,20 @@ func (node *Node) send_segment_requests(m map[protocol.DeviceIdentifier][]protoc
 	}
 }
 
-func (node *Node) await_segment_responses(file protocol.FileMetaData) {
+func (node *Node) await_segment_responses(file protocol.FileMetaData, path string) {
 	ch, _ := node.Chanels.Get(file.Hash)
+	download_file, err := os.Open(path)
+	if err != nil {
+		return
+	}
+	defer download_file.Close()
+
 	for msg := range ch {
+		segmente_offset := msg.Header.SegmentOffset * protocol.SegmentLength
 		if file.SegmentHashes[msg.Header.SegmentOffset] == protocol.HashSegment(msg.Payload, len(msg.Payload)) {
-			// create file (no download), write no file com lseek
+			download_file.Seek(int64(segmente_offset), 0)
 		}
 	}
-
 }
 
 func (node *Node) Distribute(device_segments map[protocol.DeviceIdentifier][]protocol.FileSegment, metadata protocol.FileMetaData) map[int64]protocol.DeviceIdentifier {
