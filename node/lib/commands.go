@@ -47,7 +47,7 @@ func (client *Node) MakeDirectoryAvailable(directory string) error {
 			fdata.OriginatorIP = fstp_client.Conn.LocalAddr().String()
 			fdata.Name = filepath.Base(fp)
 			fstp_client.Request(fstp.IHaveFileRequest(fstp.IHaveFileReqProps(*fdata)))
-			client.MyFiles[fp] = fdata.Hash
+			client.MyFiles[fdata.Hash] = fp 
 			client.KnownFiles[fdata.Hash] = *fdata
 		}
 

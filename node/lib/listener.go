@@ -1,12 +1,12 @@
 package lib
 
 import (
+	"cc_project/protocol"
 	"cc_project/protocol/p2p"
 	"fmt"
 	"net"
+	"os"
 )
-
-type Handler struct{}
 
 func (node *Node) ListenOnUDP() error {
 	serverAddr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%s", node.P2PConfig.Host, node.P2PConfig.Port))
@@ -38,8 +38,7 @@ func (node *Node) handleUDPMessage(addr *net.UDPAddr, packet []byte) error {
 		return err
 	}
 	if message.IsRequest {
-		fmt.Println(message.Payload)
-		// g.HandleP2PRequest()
+		go node.HandleP2PRequest(addr, message)
 	} else {
 		hash := message.FileId
 		queue, ok := node.Chanels.Get(hash)
@@ -49,4 +48,40 @@ func (node *Node) handleUDPMessage(addr *net.UDPAddr, packet []byte) error {
 		queue <- message
 	}
 	return nil
+}
+
+func (node *Node) HandleP2PRequest(addr *net.UDPAddr, msg p2p.Message) {
+	f_path, ok := node.MyFiles[msg.Header.FileId]
+	if !ok {
+		return
+	}
+	segment, err := getSegment(f_path, msg.Header.SegmentOffset)
+	if err != nil {
+		return
+	}
+	node.sender.Send(*addr, segment)
+}
+
+func getSegment(f_path string, segmentOffset uint32) ([]byte, error) {
+	file, err := os.Open(f_path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	// Seek to the starting position (byte X)
+	startingByte := 10 // Replace with the actual starting byte
+	_, err = file.Seek(int64(startingByte), 0)
+	if err != nil {
+		return nil, err
+	}
+
+	// Read the desired number of bytes (from byte X to byte Y)
+	buffer := make([]byte, protocol.SegmentLength)
+	bytesRead, err := file.Read(buffer)
+	if err != nil {
+		return nil, err
+	}
+	return buffer[:bytesRead], nil
+	// Print the read bytes
 }

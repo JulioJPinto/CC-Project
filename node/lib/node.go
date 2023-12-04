@@ -14,7 +14,7 @@ type Node struct {
 	sender     *udp_uploader.Uploader
 	Chanels    *helpers.SyncMap[protocol.FileHash, chan p2p.Message]
 
-	MyFiles map[string]protocol.FileHash // paths to my files
+	MyFiles map[protocol.FileHash ]string// paths to my files
 	Peers   helpers.SyncMap[protocol.DeviceIdentifier, PeerStats]
 	// PeerStats helpers.SyncMap[protocol.DeviceIdentifier]
 	KnownFiles map[protocol.FileHash]protocol.FileMetaData
@@ -23,7 +23,7 @@ type Node struct {
 func NewNode(fstp_config fstp.Config, p2p_config p2p.Config) (*Node, error) {
 
 	client := &Node{}
-	client.MyFiles = make(map[string]protocol.FileHash)
+	client.MyFiles = make(map[protocol.FileHash ]string)
 	client.Peers = *(helpers.NewSyncMap[protocol.DeviceIdentifier, PeerStats](protocol.HashDeviceIdentifier))
 	client.KnownFiles = make(map[protocol.FileHash]protocol.FileMetaData)
 

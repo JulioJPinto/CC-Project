@@ -7,6 +7,7 @@ import (
 	"cc_project/protocol/p2p"
 	"encoding/json"
 	"fmt"
+	"net"
 	"time"
 )
 
@@ -82,5 +83,6 @@ func (node *Node) RequestSegment(peer protocol.DeviceIdentifier, segment protoco
 	if err != nil {
 		return
 	}
-	node.sender.Send(string(peer), b)
+	addr, _ := net.ResolveUDPAddr("udp", string(peer))
+	node.sender.Send(*addr, b)
 }
