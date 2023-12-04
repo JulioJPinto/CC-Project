@@ -10,6 +10,22 @@ import (
 	"strconv"
 )
 
+func (client *Node) ResolveFileID(name string) (protocol.FileHash, error) {
+	hash_i, err := strconv.Atoi(name)
+	var hash protocol.FileHash
+	if err != nil {
+		for _, file := range client.KnownFiles {
+			if file.Name == name {
+				return file.Hash, nil
+			}
+		}
+		return 0, fmt.Errorf("%v does not exist", name)
+	} else {
+		hash = protocol.FileHash(hash_i)
+	}
+	return hash, nil
+}
+
 func (client *Node) MakeDirectoryAvailable(directory string) error {
 	_, err := os.Stat(directory)
 	fstp_client := client.FSTPclient
@@ -107,17 +123,11 @@ func (client *Node) WhoHas(files []string) helpers.StatusMessage {
 	client.FetchFiles(nil)
 	ret := helpers.StatusMessage{}
 	for _, f := range files {
-		hash_i, err := strconv.Atoi(f)
-		var hash protocol.FileHash
+		hash, err := client.ResolveFileID(f)
+		print("hash:", hash)
 		if err != nil {
-			for _, file := range client.KnownFiles {
-				if file.Name == f {
-					hash = file.Hash
-					break
-				}
-			}
-		} else {
-			hash = protocol.FileHash(hash_i)
+			ret.AddError(err)
+			continue
 		}
 		fdata := client.KnownFiles[protocol.FileHash(hash)]
 		resp, _ := client.FSTPclient.Request(fstp.NewWhoHasRequest(fstp.WhoHasReqProps{File: protocol.FileHash(hash)}))
@@ -127,7 +137,23 @@ func (client *Node) WhoHas(files []string) helpers.StatusMessage {
 			ret.AddError(fmt.Errorf("file %s not found", f))
 			continue
 		}
+		print(pay)
 		fmt.Println(fdata.Name, ":", fdata.Hash)
 	}
+	return ret
+}
+
+func (client *Node) Download(args []string) helpers.StatusMessage {
+	ret := helpers.StatusMessage{}
+	hash, err := client.ResolveFileID(args[0])
+	if err != nil {
+		client.FetchFiles(nil)
+		hash, err = client.ResolveFileID(args[0])
+		ret.AddError(err)
+		if err != nil {
+			return ret
+		}
+	}
+	fmt.Println("downloading", hash)
 	return ret
 }
