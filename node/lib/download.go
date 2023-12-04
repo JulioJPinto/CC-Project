@@ -5,7 +5,6 @@ import (
 	"cc_project/protocol"
 	"cc_project/protocol/fstp"
 	"cc_project/protocol/p2p"
-	"encoding/json"
 	"fmt"
 	"time"
 )
@@ -55,7 +54,9 @@ func (node *Node) send_segment_requests(m map[protocol.DeviceIdentifier][]protoc
 func (node *Node) await_segment_responses(file protocol.FileMetaData) {
 	ch, _ := node.Chanels.Get(file.Hash)
 	for msg := range ch {
-		println(json.Marshal(msg))
+		if file.SegmentHashes[msg.Header.SegmentOffset] == protocol.HashSegment(msg.Payload, len(msg.Payload)) {
+			// create file (no download), write no file com lseek
+		}
 	}
 
 }

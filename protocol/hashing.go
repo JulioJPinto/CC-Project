@@ -5,10 +5,17 @@ import (
 	"os"
 )
 
+func HashSegment(buffer []byte, n int) Hash {
+	hasher := crc32.NewIEEE() // Use CRC32 hash
+
+	hasher.Reset()
+	hasher.Write(buffer[:n])
+	return Hash(hasher.Sum32()) // Convert to the Hash type
+}
+
 func Hashing(file *os.File, file_name string) (*FileMetaData, error) {
 	// Create a buffer to read 128 bytes at a time
 	buffer := make([]byte, SegmentLength)
-	hasher := crc32.NewIEEE() // Use CRC32 hash
 
 	// Hash the entire file
 	fileHash := crc32.NewIEEE() // Use CRC32 hash
@@ -30,10 +37,7 @@ func Hashing(file *os.File, file_name string) (*FileMetaData, error) {
 		}
 
 		// Hash the chunk
-		hasher.Reset()
-		hasher.Write(buffer[:n])
-		chunkHash := Hash(hasher.Sum32()) // Convert to the Hash type
-
+		chunkHash := HashSegment(buffer, n)
 		// Update the hash of the entire file
 		fileHash.Write(buffer[:n])
 
