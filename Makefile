@@ -1,7 +1,9 @@
-all: build-node build-tracker
+all: 
+	mkdir bin -p
+	make build-node 
+	make build-tracker
 
 build-node:
-	mkdir bin
 	go build -o bin/node ./node
 	mkdir client_files/downloaded
 

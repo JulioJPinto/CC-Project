@@ -40,11 +40,6 @@ func (node *Node) DownloadFile(file_hash protocol.FileHash) error {
 	}
 
 	path := "../client_files/downloaded/" + "test"
-	writef, err := os.Create(path)
-	if err != nil {
-		return err
-	}
-	defer writef.Close()
 
 	go node.send_segment_requests(p)
 	go node.await_segment_responses(file_meta_data, path)
@@ -61,17 +56,16 @@ func (node *Node) send_segment_requests(m map[protocol.DeviceIdentifier][]protoc
 }
 
 func (node *Node) await_segment_responses(file protocol.FileMetaData, path string) {
-	ch, _ := node.Chanels.Get(file.Hash)
-	download_file, err := os.Open(path)
+	writef, err := os.Create(path)
 	if err != nil {
 		return
 	}
-	defer download_file.Close()
+	ch, _ := node.Chanels.Get(file.Hash)
 
 	for msg := range ch {
 		segmente_offset := msg.Header.SegmentOffset * protocol.SegmentLength
 		if file.SegmentHashes[msg.Header.SegmentOffset] == protocol.HashSegment(msg.Payload, len(msg.Payload)) {
-			download_file.Seek(int64(segmente_offset), 0)
+			writef.Seek(int64(segmente_offset), 0)
 		}
 	}
 }
