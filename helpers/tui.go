@@ -9,7 +9,7 @@ import (
 	"github.com/fatih/color"
 )
 
-func TUI[T any](reader *bufio.Reader, client T, commands map[string]func(T, []string)  StatusMessage) {
+func TUI[T any](reader *bufio.Reader, client T, commands map[string]func(T, []string) StatusMessage) {
 	for {
 		line, err := reader.ReadString('\n')
 		if err != nil {

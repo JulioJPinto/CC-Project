@@ -13,14 +13,14 @@ import (
 )
 
 var commands = map[string]func(*lib.Node, []string) helpers.StatusMessage{
-	"upload": func(g *lib.Node, a []string) helpers.StatusMessage { return g.UploadFiles(a) },
-	"files":  func(g *lib.Node, a []string) helpers.StatusMessage { return g.ListFiles(a) },
-	"fetch":  func(g *lib.Node, a []string) helpers.StatusMessage { return g.FetchFiles(a) },
-	"who":    func(g *lib.Node, a []string) helpers.StatusMessage { return g.WhoHas(a) },
+	"upload":   func(g *lib.Node, a []string) helpers.StatusMessage { return g.UploadFiles(a) },
+	"files":    func(g *lib.Node, a []string) helpers.StatusMessage { return g.ListFiles(a) },
+	"fetch":    func(g *lib.Node, a []string) helpers.StatusMessage { return g.FetchFiles(a) },
+	"who":      func(g *lib.Node, a []string) helpers.StatusMessage { return g.WhoHas(a) },
 	"download": func(g *lib.Node, a []string) helpers.StatusMessage { return g.Download(a) },
-	"test": func(g *lib.Node, a []string) helpers.StatusMessage { return g.Test(a) },
-	// "status": 
-	"leave":  func(g *lib.Node, a []string) helpers.StatusMessage { os.Exit(0); return helpers.StatusMessage{} },
+	"test":        func(g *lib.Node, a []string) helpers.StatusMessage { return g.Test(a) },
+	// "status":
+	"leave": func(g *lib.Node, a []string) helpers.StatusMessage { os.Exit(0); return helpers.StatusMessage{} },
 }
 
 func main() {
