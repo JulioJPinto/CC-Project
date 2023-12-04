@@ -47,7 +47,7 @@ func (client *Node) MakeDirectoryAvailable(directory string) error {
 			fdata.OriginatorIP = fstp_client.Conn.LocalAddr().String()
 			fdata.Name = filepath.Base(fp)
 			fstp_client.Request(fstp.IHaveFileRequest(fstp.IHaveFileReqProps(*fdata)))
-			client.MyFiles[fdata.Hash] = fp 
+			client.MyFiles[fdata.Hash] = fp
 			client.KnownFiles[fdata.Hash] = *fdata
 		}
 
@@ -156,4 +156,10 @@ func (client *Node) Download(args []string) helpers.StatusMessage {
 	}
 	fmt.Println("downloading", hash)
 	return ret
+}
+
+func (client *Node) Test(args []string) helpers.StatusMessage {
+	msg := helpers.StatusMessage{}
+	msg.AddMessage(nil, "all is well")
+	return msg
 }

@@ -2,7 +2,6 @@ package lib
 
 import (
 	"cc_project/helpers"
-	"cc_project/node/lib/udp_uploader"
 	"cc_project/protocol/p2p"
 	"cc_project/protocol"
 	"cc_project/protocol/fstp"
@@ -11,7 +10,7 @@ import (
 type Node struct {
 	FSTPclient *fstp.Client
 	P2PConfig  p2p.Config
-	sender     *udp_uploader.Uploader
+	sender     *helpers.Uploader
 	Chanels    *helpers.SyncMap[protocol.FileHash, chan p2p.Message]
 
 	MyFiles map[protocol.FileHash ]string// paths to my files
@@ -35,6 +34,6 @@ func NewNode(fstp_config fstp.Config, p2p_config p2p.Config) (*Node, error) {
 	}
 	client.FSTPclient = fstp_client
 	client.P2PConfig = p2p_config
-	client.sender = udp_uploader.NewUploader(5)
+	client.sender = helpers.NewUploader(5)
 	return client, err
 }
