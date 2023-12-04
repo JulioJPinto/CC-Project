@@ -27,10 +27,10 @@ func NewNode(fstp_config fstp.Config, p2p_config p2p.Config) (*Node, error) {
 
 	client := &Node{}
 	client.MyFiles = make(map[string]protocol.FileHash)
-	client.Peers = *(helpers.NewSyncMap[protocol.DeviceIdentifier, PeerStats]())
+	client.Peers = *(helpers.NewSyncMap[protocol.DeviceIdentifier, PeerStats](protocol.HashDeviceIdentifier))
 	client.KnownFiles = make(map[protocol.FileHash]protocol.FileMetaData)
 
-	client.Chanels = helpers.NewSyncMap[protocol.FileHash, chan p2p.Message]()
+	client.Chanels = helpers.NewSyncMap[protocol.FileHash, chan p2p.Message](protocol.HashFileHash)
 	var fstp_client *fstp.Client
 	var err error = nil
 	if fstp_client, err = fstp.NewClient(fstp_config); err != nil {
