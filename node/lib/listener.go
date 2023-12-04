@@ -1,7 +1,7 @@
 package lib
 
 import (
-	"cc_project/protocol/p2p"
+	"cc_project/node/p2p"
 	"fmt"
 	"net"
 )

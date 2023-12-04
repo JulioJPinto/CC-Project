@@ -2,51 +2,108 @@ package helpers
 
 import "sync"
 
-type SyncMap[K comparable, V any] struct {
-	content map[K]V
-	sync.RWMutex
+type hashable interface {
+	~string | ~uint32 | ~uint64
 }
 
-func NewSyncMap[K comparable, V any]() *SyncMap[K, V] {
+type Shard[K hashable, V any] struct {
+	content map[K]V
+	lock sync.RWMutex
+}
+
+type SyncMap[K hashable, V any] struct {
+	numShards int
+	shards []*Shard[K, V]
+	hashFn HashFn[K]
+}
+
+const DEFAULT_NUM_SHARDS = 32
+const DEFAULT_MAP_SIZE = 1024
+
+func NewSyncMap[K hashable, V any](hashFn HashFn[K]) *SyncMap[K, V] {
+	shards := make([]*Shard[K, V], DEFAULT_NUM_SHARDS)
+	for i := 0; i < DEFAULT_NUM_SHARDS; i++ {
+		shards[i] = &Shard[K, V]{
+			content: make(map[K]V, DEFAULT_MAP_SIZE / DEFAULT_NUM_SHARDS),
+			lock: sync.RWMutex{},
+		}
+	}
+
 	return &SyncMap[K, V]{
-		content: make(map[K]V),
-		RWMutex: sync.RWMutex{},
+		numShards: DEFAULT_NUM_SHARDS,
+		shards: shards,
+		hashFn: hashFn,
 	}
 }
 
 func (m *SyncMap[K, V]) Get(key K) (value V, ok bool) {
-	m.RLock()
-	defer m.RUnlock()
-	value, ok = m.content[key]
+	shard := m.hashFn(key) & uint64(m.numShards - 1)
+
+	if m.shards[shard] == nil {
+		return
+	}
+
+	m.shards[shard].lock.RLock()
+	defer m.shards[shard].lock.RUnlock()
+
+	if v, ok := m.shards[shard].content[key]; ok {
+		return v, true
+	}
+
 	return
 }
 
 func (m *SyncMap[K, V]) Set(key K, value V) {
-	m.Lock()
-	defer m.Unlock()
-	m.content[key] = value
+	shard := m.hashFn(key) & uint64(m.numShards - 1)
+
+	if m.shards[shard] == nil {
+		return
+	}
+
+	m.shards[shard].lock.Lock()
+	defer m.shards[shard].lock.Unlock()
+
+	m.shards[shard].content[key] = value
 }
 
-
 func (m *SyncMap[K, V]) Delete(key K) {
-	m.Lock()
-	defer m.Unlock()
-	delete(m.content, key)
+	shard := m.hashFn(key) & uint64(m.numShards - 1)
+
+	if m.shards[shard] == nil {
+		return
+	}
+
+	m.shards[shard].lock.Lock()
+	defer m.shards[shard].lock.Unlock()
+
+	if _, ok := m.shards[shard].content[key]; ok {
+		delete(m.shards[shard].content, key)
+	}
 }
 
 func (m *SyncMap[K, V]) Len() int {
-	m.RLock()
-	defer m.RUnlock()
-	return len(m.content)
+	length := 0
+
+	for _, shard := range m.shards {
+		shard.lock.RLock()
+		length += len(shard.content)
+		shard.lock.RUnlock()
+	}
+
+	return length
 }
 
 func (m *SyncMap[K, V]) Keys() []K {
-	m.RLock()
-	defer m.RUnlock()
-	keys := make([]K, 0, len(m.content))
-	for key := range m.content {
-		keys = append(keys, key)
+	keys := make([]K, 0, m.Len())
+
+	for _, shard := range m.shards {
+		shard.lock.RLock()
+		for key := range shard.content {
+			keys = append(keys, key)
+		}
+		shard.lock.RUnlock()
 	}
+
 	return keys
 }
 
