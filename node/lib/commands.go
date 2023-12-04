@@ -124,6 +124,7 @@ func (client *Node) WhoHas(files []string) helpers.StatusMessage {
 	ret := helpers.StatusMessage{}
 	for _, f := range files {
 		hash, err := client.ResolveFileID(f)
+		print("hash:", hash)
 		if err != nil {
 			ret.AddError(err)
 			continue
