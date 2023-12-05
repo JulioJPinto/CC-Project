@@ -16,7 +16,7 @@ type Header struct {
 
 func (h *Header) Serialize() ([]byte, error) {
 	load127 := h.Load << 1
-	header := []byte{}
+	header := [15]byte{}
 	// if h.IsRequest {
 	// 	header[0] = byte(0b0000_0000)
 	// } else {
@@ -33,7 +33,7 @@ func (h *Header) Serialize() ([]byte, error) {
 	binary.LittleEndian.PutUint16(header[9:11], h.Length)
 	binary.LittleEndian.PutUint32(header[11:15], h.TimeStamp)
 
-	return header, nil
+	return header[:], nil
 }
 
 func (h *Header) Deserialize(byteArray []byte) error {
@@ -53,7 +53,7 @@ type Response Message
 
 type Message struct {
 	Header  `json:"Header"`
-	Payload []byte //JSON Serializable
+	Payload []byte `json:"Payload"` //JSON Serializable
 }
 
 const PacketSize = 2048
@@ -61,6 +61,7 @@ const HeaderSize = 15
 
 func (m *Message) Serialize() ([]byte, error) {
 	header_bytes, err := m.Header.Serialize()
+
 	if err != nil {
 		return nil, err
 	}
@@ -82,6 +83,7 @@ func (m *Message) Deserialize(bytes []byte) error {
 func GimmeFileSegmentRequest(segment protocol.FileSegment, time_stamp uint32) Request {
 	header := Header{
 		IsRequest:     true,
+		Load:          0,
 		FileId:        segment.FileHash,
 		TimeStamp:     time_stamp,
 		SegmentOffset: uint32(segment.BlockOffset),

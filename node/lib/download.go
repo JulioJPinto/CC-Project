@@ -5,9 +5,10 @@ import (
 	"cc_project/protocol"
 	"cc_project/protocol/fstp"
 	"cc_project/protocol/p2p"
+	"encoding/json"
 	"fmt"
-	"os"
 	"net"
+	"os"
 	"time"
 )
 
@@ -30,6 +31,7 @@ func (node *Node) DownloadFile(file_hash protocol.FileHash) error {
 	if err != nil {
 		return err
 	}
+	print(json.Marshal(resp))
 	pay, ok := resp.Payload.(*fstp.WhoHasRespProps)
 	if !ok {
 		return fmt.Errorf("invalid payload")

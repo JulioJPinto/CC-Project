@@ -12,6 +12,7 @@ type Client struct {
 	UDP_PORT int
 }
 
+const debugging = false
 const DefaultUDPPort = 9090
 
 func NewClient(config Config) (*Client, error) {
@@ -29,12 +30,12 @@ func (client *Client) Close() {
 func (client *Client) Request(request Request) (*Response, error) {
 	req_msg := Message(request)
 	s, _ := req_msg.Serialize()
-
-	s_data := fmt.Sprint("\nsending: ", s)
-	s_str := fmt.Sprint("\nAKA \n\t<", HeaderType(int(s[0])), ">\n\tPayload: ", string(s[HeaderSize:]))
-	color.Green(s_data)
-	color.Blue(s_str)
-
+	if debugging {
+		s_data := fmt.Sprint("\nsending: ", s)
+		s_str := fmt.Sprint("\nAKA \n\t<", HeaderType(int(s[0])), ">\n\tPayload: ", string(s[HeaderSize:]))
+		color.Green(s_data)
+		color.Blue(s_str)
+	}
 	client.Conn.Write(s)
 
 	var recieved_data []byte
@@ -53,10 +54,13 @@ func (client *Client) Request(request Request) (*Response, error) {
 			break
 		}
 	}
-	data := fmt.Sprint("\nrecieved: ", recieved_data)
-	str := fmt.Sprint("\nAKA: \n\t<", HeaderType(int(recieved_data[0])), ">\n\tPayload: ", string(recieved_data[HeaderSize:]))
-	color.Green(data)
-	color.Blue(str)
+	if debugging {
+
+		data := fmt.Sprint("\nrecieved: ", recieved_data)
+		str := fmt.Sprint("\nAKA: \n\t<", HeaderType(int(recieved_data[0])), ">\n\tPayload: ", string(recieved_data[HeaderSize:]))
+		color.Green(data)
+		color.Blue(str)
+	}
 	if err != nil {
 		client.Conn.Close()
 		return nil, err
