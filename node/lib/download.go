@@ -6,6 +6,9 @@ import (
 	"cc_project/protocol/fstp"
 	"cc_project/protocol/p2p"
 	"encoding/json"
+
+	"github.com/fatih/color"
+
 	"fmt"
 	"net"
 	"os"
@@ -16,7 +19,9 @@ func (node *Node) DownloadFile(file_hash protocol.FileHash) error {
 	if _, ok := node.Chanels.Get(file_hash); ok {
 		return fmt.Errorf("download already in progress")
 	}
-
+	channel := make(chan p2p.Message)
+	node.Chanels.Set(file_hash, channel)
+	defer node.Chanels.Delete(file_hash)
 	file_meta_data, ok := node.KnownFiles[file_hash] // file_meta_data,ok := c.KnownFiles.get(file_hash)
 
 	if !ok {
@@ -68,7 +73,10 @@ func (node *Node) await_segment_responses(file protocol.FileMetaData, path strin
 	for msg := range ch {
 		segmente_offset := msg.Header.SegmentOffset * protocol.SegmentLength
 		if file.SegmentHashes[msg.Header.SegmentOffset] == protocol.HashSegment(msg.Payload, len(msg.Payload)) {
+			color.Cyan("the hashin do be matchin")
 			writef.Seek(int64(segmente_offset), 0)
+		} else {
+			color.Cyan("the hashin do NOT be matchin")
 		}
 	}
 }
