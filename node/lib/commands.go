@@ -163,7 +163,7 @@ func (node *Node) Download(args []string) helpers.StatusMessage {
 		fmt.Println("already have", f_name)
 	} else {
 		fmt.Println("downloading", hash, "...")
-		node.DownloadFile(hash)
+		go node.DownloadFile(hash)
 	}
 	ret.AddMessage(nil, "Download in progress")
 	return ret

@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net"
 	"os"
+
+	"github.com/fatih/color"
 )
 
 func (node *Node) ListenOnUDP() error {
@@ -28,7 +30,8 @@ func (node *Node) ListenOnUDP() error {
 		}
 
 		data := buffer[:n]
-		fmt.Printf("Received %d bytes from %s: %s\n", n, addr.String(), string(data))
+		s := fmt.Sprintf("\n\nReceived %d bytes from %s: %s\n\n", n, addr.String(), string(data))
+		color.Green(s)
 		node.handleUDPMessage(addr, data)
 	}
 }
@@ -39,11 +42,16 @@ func (node *Node) handleUDPMessage(addr *net.UDPAddr, packet []byte) error {
 		return err
 	}
 	if message.IsRequest {
+
+		color.Green("itssa requestttt")
 		go node.HandleP2PRequest(addr, message)
 	} else {
+		color.Green("itssa responsss")
+
 		hash := message.FileId
 		queue, ok := node.Chanels.Get(hash)
 		if !ok {
+			color.Red("channel dont exist")
 			return nil
 		}
 		queue <- message

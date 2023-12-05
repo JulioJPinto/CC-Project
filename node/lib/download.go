@@ -22,7 +22,6 @@ func (node *Node) DownloadFile(file_hash protocol.FileHash) error {
 	channel := make(chan p2p.Message)
 	node.Chanels.Set(file_hash, channel)
 
-	// defer node.Chanels.Delete(file_hash)
 	file_meta_data, ok := node.KnownFiles[file_hash] // file_meta_data,ok := c.KnownFiles.get(file_hash)
 
 	if !ok {
@@ -65,6 +64,7 @@ func (node *Node) send_segment_requests(m map[protocol.DeviceIdentifier][]protoc
 }
 
 func (node *Node) await_segment_responses(file protocol.FileMetaData, path string) {
+	defer node.Chanels.Delete(file.Hash)
 	writef, err := os.Create(path)
 	if err != nil {
 		return
