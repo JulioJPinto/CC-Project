@@ -10,11 +10,11 @@ import (
 	"strconv"
 )
 
-func (client *Node) ResolveFileID(name string) (protocol.FileHash, error) {
+func (node *Node) ResolveFileID(name string) (protocol.FileHash, error) {
 	hash_i, err := strconv.Atoi(name)
 	var hash protocol.FileHash
 	if err != nil {
-		for _, file := range client.KnownFiles {
+		for _, file := range node.KnownFiles {
 			if file.Name == name {
 				return file.Hash, nil
 			}
@@ -26,12 +26,12 @@ func (client *Node) ResolveFileID(name string) (protocol.FileHash, error) {
 	return hash, nil
 }
 
-func (client *Node) MakeDirectoryAvailable(directory string) error {
+func (node *Node) MakeDirectoryAvailable(directory string) error {
 	_, err := os.Stat(directory)
 	if err != nil {
 		return err
 	}
-	fstp_client := client.FSTPclient
+	fstp_client := node.FSTPclient
 
 	visitFile := func(fp string, fi os.DirEntry, err error) error {
 		if err != nil {
@@ -50,8 +50,8 @@ func (client *Node) MakeDirectoryAvailable(directory string) error {
 			fdata.OriginatorIP = fstp_client.Conn.LocalAddr().String()
 			fdata.Name = filepath.Base(fp)
 			fstp_client.Request(fstp.IHaveFileRequest(fstp.IHaveFileReqProps(*fdata)))
-			client.MyFiles[fdata.Hash] = fp
-			client.KnownFiles[fdata.Hash] = *fdata
+			node.MyFiles[fdata.Hash] = fp
+			node.KnownFiles[fdata.Hash] = *fdata
 		}
 
 		return nil
@@ -63,9 +63,9 @@ func (client *Node) MakeDirectoryAvailable(directory string) error {
 	return err
 }
 
-func (client *Node) makeFileAvailable(f_path string) error {
+func (node *Node) makeFileAvailable(f_path string) error {
 	fileInfo, err := os.Stat(f_path)
-	fstp_client := client.FSTPclient
+	fstp_client := node.FSTPclient
 	if err != nil {
 		return err
 	}
@@ -76,7 +76,8 @@ func (client *Node) makeFileAvailable(f_path string) error {
 		if err != nil {
 			return err
 		} else {
-			client.KnownFiles[fdata.Hash] = *fdata
+			node.MyFiles[fdata.Hash] = f_path
+			node.KnownFiles[fdata.Hash] = *fdata
 			fdata.OriginatorIP = fstp_client.Conn.LocalAddr().String()
 			fdata.Name = filepath.Base(f_path)
 			fstp_client.Request(fstp.IHaveFileRequest(fstp.IHaveFileReqProps(*fdata)))
@@ -85,8 +86,8 @@ func (client *Node) makeFileAvailable(f_path string) error {
 	return nil
 }
 
-func (client *Node) FetchFiles(_ []string) helpers.StatusMessage {
-	resp, err := client.FSTPclient.Request(fstp.AllFilesRequest())
+func (node *Node) FetchFiles(_ []string) helpers.StatusMessage {
+	resp, err := node.FSTPclient.Request(fstp.AllFilesRequest())
 	ret := helpers.StatusMessage{}
 	if err != nil {
 		ret.AddError(err)
@@ -99,41 +100,41 @@ func (client *Node) FetchFiles(_ []string) helpers.StatusMessage {
 		ret.AddError(fmt.Errorf("invalid payload type: %v", resp.Payload))
 		return ret
 	}
-	helpers.MergeMaps[protocol.FileHash, protocol.FileMetaData](client.KnownFiles, all_files.Files)
+	helpers.MergeMaps[protocol.FileHash, protocol.FileMetaData](node.KnownFiles, all_files.Files)
 	keys := helpers.MapKeys[protocol.FileHash](all_files.Files)
 	ret.AddMessage(nil, fmt.Sprint("fetched", keys))
 	return ret
 }
 
-func (client *Node) UploadFiles(args []string) helpers.StatusMessage {
+func (node *Node) UploadFiles(args []string) helpers.StatusMessage {
 	ret := helpers.StatusMessage{}
 	for _, arg := range args {
-		ret.AddMessage(client.makeFileAvailable(arg), fmt.Sprintf("File %s uploaded", arg))
+		ret.AddMessage(node.makeFileAvailable(arg), fmt.Sprintf("File %s uploaded", arg))
 	}
 	return ret
 }
 
-func (client *Node) ListFiles(_ []string) helpers.StatusMessage {
-	client.FetchFiles(nil)
+func (node *Node) ListFiles(_ []string) helpers.StatusMessage {
+	node.FetchFiles(nil)
 	ret := helpers.StatusMessage{}
-	for _, v := range client.KnownFiles {
+	for _, v := range node.KnownFiles {
 		fmt.Println(v.Name, ":", v.Hash)
 	}
 	return ret
 }
 
-func (client *Node) WhoHas(files []string) helpers.StatusMessage {
-	client.FetchFiles(nil)
+func (node *Node) WhoHas(files []string) helpers.StatusMessage {
+	node.FetchFiles(nil)
 	ret := helpers.StatusMessage{}
 	for _, f := range files {
-		hash, err := client.ResolveFileID(f)
+		hash, err := node.ResolveFileID(f)
 		print("hash:", hash)
 		if err != nil {
 			ret.AddError(err)
 			continue
 		}
-		fdata := client.KnownFiles[protocol.FileHash(hash)]
-		resp, _ := client.FSTPclient.Request(fstp.NewWhoHasRequest(fstp.WhoHasReqProps{File: protocol.FileHash(hash)}))
+		fdata := node.KnownFiles[protocol.FileHash(hash)]
+		resp, _ := node.FSTPclient.Request(fstp.NewWhoHasRequest(fstp.WhoHasReqProps{File: protocol.FileHash(hash)}))
 		pay, ok := resp.Payload.(*fstp.WhoHasRespProps)
 		fmt.Printf("pay: %v\n", pay)
 		if !ok {
@@ -146,18 +147,24 @@ func (client *Node) WhoHas(files []string) helpers.StatusMessage {
 	return ret
 }
 
-func (client *Node) Download(args []string) helpers.StatusMessage {
+func (node *Node) Download(args []string) helpers.StatusMessage {
 	ret := helpers.StatusMessage{}
-	hash, err := client.ResolveFileID(args[0])
+	hash, err := node.ResolveFileID(args[0])
 	if err != nil {
-		client.FetchFiles(nil)
-		hash, err = client.ResolveFileID(args[0])
+		node.FetchFiles(nil)
+		hash, err = node.ResolveFileID(args[0])
 		ret.AddError(err)
 		if err != nil {
 			return ret
 		}
 	}
-	fmt.Println("downloading", hash)
+	if _, ok := node.MyFiles[hash]; ok {
+		f_name := node.MyFiles[hash]
+		fmt.Println("already have", f_name)
+	} else {
+		fmt.Println("downloading", hash, "...")
+		node.DownloadFile(hash)
+	}
 	return ret
 }
 

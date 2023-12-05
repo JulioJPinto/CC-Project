@@ -40,20 +40,22 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	var path string
 	if len(os.Args) > 2 {
-		path := os.Args[2]
+		path = os.Args[2]
 		err := node.MakeDirectoryAvailable(os.Args[2])
 		if os.IsNotExist(err) {
 			os.Mkdir(path, 0700)
 			fmt.Println("created", path, "folder")
 		}
 	} else {
-		path := "node_files"
+		path = "node_files"
 		os.Mkdir(path, 0700)
 		fmt.Println("created", path, "folder")
 
 	}
-
+	node.NodeDir = path
+	go node.WatchFolder()
 	status := node.FetchFiles(nil)
 	color.Green(status.ShowMessages())
 	if status.Error() != nil {
