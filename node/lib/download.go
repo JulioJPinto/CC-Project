@@ -21,7 +21,8 @@ func (node *Node) DownloadFile(file_hash protocol.FileHash) error {
 	}
 	channel := make(chan p2p.Message)
 	node.Chanels.Set(file_hash, channel)
-	defer node.Chanels.Delete(file_hash)
+
+	// defer node.Chanels.Delete(file_hash)
 	file_meta_data, ok := node.KnownFiles[file_hash] // file_meta_data,ok := c.KnownFiles.get(file_hash)
 
 	if !ok {

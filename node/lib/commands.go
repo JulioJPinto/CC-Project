@@ -148,7 +148,7 @@ func (node *Node) WhoHas(files []string) helpers.StatusMessage {
 }
 
 func (node *Node) Download(args []string) helpers.StatusMessage {
-	ret := helpers.StatusMessage{}
+	ret := helpers.NewStatusMessage()
 	hash, err := node.ResolveFileID(args[0])
 	if err != nil {
 		node.FetchFiles(nil)
@@ -165,6 +165,7 @@ func (node *Node) Download(args []string) helpers.StatusMessage {
 		fmt.Println("downloading", hash, "...")
 		node.DownloadFile(hash)
 	}
+	ret.AddMessage(nil, "Download in progress")
 	return ret
 }
 

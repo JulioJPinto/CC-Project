@@ -11,6 +11,13 @@ type StatusMessage struct {
 	Errors   []error
 }
 
+func NewStatusMessage()StatusMessage {
+	msg:=StatusMessage{}
+	msg.Messages = []string{}
+	msg.Errors = []error{}
+	return msg
+}
+
 func (m *StatusMessage) ShowMessages() string {
 	var ret string
 	ret += "Messages:\n"
