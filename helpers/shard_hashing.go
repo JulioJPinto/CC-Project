@@ -24,3 +24,5 @@ func HashUint64(u uint64) uint64 {
 func HashUint32(u uint32) uint64 {
 	return HashUint64(uint64(u))
 }
+
+

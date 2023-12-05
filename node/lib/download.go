@@ -18,11 +18,11 @@ import (
 func (node *Node) DownloadFile(file_hash protocol.FileHash) error {
 	color.Green("DOWNLOADIN" + fmt.Sprintf("%d", file_hash))
 
-	if _, ok := node.Chanels.Get(file_hash); ok {
+	if _, ok := node.Chanels.Load(file_hash); ok {
 		return fmt.Errorf("download already in progress")
 	}
 	channel := make(chan p2p.Message)
-	node.Chanels.Set(file_hash, channel)
+	node.Chanels.Store(file_hash, channel)
 	color.Green("created channel for " + fmt.Sprintf("%d", file_hash))
 	file_meta_data, ok := node.KnownFiles[file_hash] // file_meta_data,ok := c.KnownFiles.get(file_hash)
 
@@ -71,8 +71,8 @@ func (node *Node) await_segment_responses(file protocol.FileMetaData, path strin
 	if err != nil {
 		return
 	}
-	ch, _ := node.Chanels.Get(file.Hash)
-
+	ch_, _ := node.Chanels.Load(file.Hash)
+	ch := ch_.(chan p2p.Message)
 	for msg := range ch {
 		data := fmt.Sprint("\nrecieved: ", msg.Payload)
 		color.Cyan(data)

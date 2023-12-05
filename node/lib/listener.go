@@ -49,10 +49,11 @@ func (node *Node) handleUDPMessage(addr *net.UDPAddr, packet []byte) error {
 		color.Green("itssa responsss")
 
 		hash := message.FileId
-		queue, ok := node.Chanels.Get(hash)
+		queue_, ok := node.Chanels.Load(hash)
+		queue := queue_.(chan p2p.Message)
 		if !ok {
 			color.Red("channel dont exist")
-			fmt.Println(node.Chanels.Keys())
+			// fmt.Println(node.Chanels.())
 			return nil
 		}
 		queue <- message
