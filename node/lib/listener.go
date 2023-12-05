@@ -59,6 +59,7 @@ func (node *Node) HandleP2PRequest(addr *net.UDPAddr, msg p2p.Message) {
 	if err != nil {
 		return
 	}
+	addr.Port = 9090
 	node.sender.Send(*addr, segment)
 }
 
