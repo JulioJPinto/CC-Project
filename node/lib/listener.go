@@ -52,6 +52,7 @@ func (node *Node) handleUDPMessage(addr *net.UDPAddr, packet []byte) error {
 		queue, ok := node.Chanels.Get(hash)
 		if !ok {
 			color.Red("channel dont exist")
+			fmt.Println(node.Chanels.Keys())
 			return nil
 		}
 		queue <- message
