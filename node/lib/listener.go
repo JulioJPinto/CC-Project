@@ -9,7 +9,8 @@ import (
 )
 
 func (node *Node) ListenOnUDP() error {
-	serverAddr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%s", node.P2PConfig.Host, node.P2PConfig.Port))
+	// fmt.Sprintf("%s:%s", node.P2PConfig.Host, node.P2PConfig.Port)
+	serverAddr, err := net.ResolveUDPAddr("udp", "0.0.0.0:9090")
 	if err != nil {
 		return err
 	}
