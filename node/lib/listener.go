@@ -60,16 +60,24 @@ func (node *Node) handleUDPMessage(addr *net.UDPAddr, packet []byte) error {
 }
 
 func (node *Node) HandleP2PRequest(addr *net.UDPAddr, msg p2p.Message) {
-	f_path, ok := node.MyFiles[msg.Header.FileId]
+	f_path, ok := node.MyFiles[msg.FileId]
 	if !ok {
 		return
 	}
 	segment, err := getSegment(f_path, msg.Header.SegmentOffset)
+	segment_data := node.KnownFiles[msg.FileId]
+	hash := segment_data.SegmentHashes[msg.Header.SegmentOffset]
+	f := protocol.FileSegment{
+		BlockOffset: int64(msg.SegmentOffset),
+		FileHash:    msg.FileId,
+		Hash:        hash}
 	if err != nil {
 		return
 	}
 	addr.Port = 9090
-	node.sender.Send(*addr, segment)
+	ret_msg := p2p.GivYouFileSegmentResponse(f, segment, 0)
+	bytes, _ := ret_msg.Serialize()
+	node.sender.Send(*addr, bytes)
 }
 
 func getSegment(f_path string, segmentOffset uint32) ([]byte, error) {
