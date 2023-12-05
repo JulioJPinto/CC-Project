@@ -71,6 +71,8 @@ func (node *Node) await_segment_responses(file protocol.FileMetaData, path strin
 	ch, _ := node.Chanels.Get(file.Hash)
 
 	for msg := range ch {
+		data := fmt.Sprint("\nrecieved: ", msg.Payload)
+		color.Cyan(data)
 		segmente_offset := msg.Header.SegmentOffset * protocol.SegmentLength
 		if file.SegmentHashes[msg.Header.SegmentOffset] == protocol.HashSegment(msg.Payload, len(msg.Payload)) {
 			color.Cyan("the hashin do be matchin")
