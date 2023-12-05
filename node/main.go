@@ -6,6 +6,7 @@ import (
 	"cc_project/node/lib"
 	"cc_project/protocol/fstp"
 	"cc_project/protocol/p2p"
+	"fmt"
 	"log"
 	"os"
 
@@ -18,7 +19,7 @@ var commands = map[string]func(*lib.Node, []string) helpers.StatusMessage{
 	"fetch":    func(g *lib.Node, a []string) helpers.StatusMessage { return g.FetchFiles(a) },
 	"who":      func(g *lib.Node, a []string) helpers.StatusMessage { return g.WhoHas(a) },
 	"download": func(g *lib.Node, a []string) helpers.StatusMessage { return g.Download(a) },
-	"test":        func(g *lib.Node, a []string) helpers.StatusMessage { return g.Test(a) },
+	"test":     func(g *lib.Node, a []string) helpers.StatusMessage { return g.Test(a) },
 	// "status":
 	"leave": func(g *lib.Node, a []string) helpers.StatusMessage { os.Exit(0); return helpers.StatusMessage{} },
 }
@@ -40,7 +41,17 @@ func main() {
 		log.Fatal(err)
 	}
 	if len(os.Args) > 2 {
-		node.MakeDirectoryAvailable(os.Args[2])
+		path := os.Args[2]
+		err := node.MakeDirectoryAvailable(os.Args[2])
+		if os.IsNotExist(err) {
+			os.Mkdir(path, 0700)
+			fmt.Println("created", path, "folder")
+		}
+	} else {
+		path := "node_files"
+		os.Mkdir(path, 0700)
+		fmt.Println("created", path, "folder")
+
 	}
 
 	status := node.FetchFiles(nil)

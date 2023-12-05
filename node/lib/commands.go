@@ -28,6 +28,9 @@ func (client *Node) ResolveFileID(name string) (protocol.FileHash, error) {
 
 func (client *Node) MakeDirectoryAvailable(directory string) error {
 	_, err := os.Stat(directory)
+	if err != nil {
+		return err
+	}
 	fstp_client := client.FSTPclient
 
 	visitFile := func(fp string, fi os.DirEntry, err error) error {
@@ -161,5 +164,6 @@ func (client *Node) Download(args []string) helpers.StatusMessage {
 func (client *Node) Test(args []string) helpers.StatusMessage {
 	msg := helpers.StatusMessage{}
 	msg.AddMessage(nil, "all is well")
+	// client.RequestSegment("");
 	return msg
 }
