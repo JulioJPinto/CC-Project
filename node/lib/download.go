@@ -96,5 +96,6 @@ func (node *Node) RequestSegment(peer protocol.DeviceIdentifier, segment protoco
 		return
 	}
 	addr, _ := net.ResolveUDPAddr("udp", string(peer))
+	addr.Port = 9090
 	node.sender.Send(*addr, b)
 }
