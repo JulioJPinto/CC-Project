@@ -58,6 +58,8 @@ func (node *Node) DownloadFile(file_hash protocol.FileHash) error {
 }
 
 func (node *Node) send_segment_requests(m map[protocol.DeviceIdentifier][]protocol.FileSegment) {
+	color.Cyan("requesting ...")
+
 	for id, segments := range m {
 		for _, segment := range segments {
 			node.RequestSegment(id, segment)
@@ -66,13 +68,15 @@ func (node *Node) send_segment_requests(m map[protocol.DeviceIdentifier][]protoc
 }
 
 func (node *Node) await_segment_responses(file protocol.FileMetaData, path string) {
-	defer node.Chanels.Delete(file.Hash)
+	color.Cyan("awayting ...")
+	// defer node.Chanels.Delete(file.Hash)
 	writef, err := os.Create(path)
 	if err != nil {
 		return
 	}
 	ch_, _ := node.Chanels.Load(file.Hash)
 	ch := ch_.(chan p2p.Message)
+
 	for msg := range ch {
 		data := fmt.Sprint("\nrecieved: ", msg.Payload)
 		color.Cyan(data)
