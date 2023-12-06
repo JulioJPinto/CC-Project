@@ -1,6 +1,7 @@
 package helpers
 
 import (
+	"encoding/hex"
 	"fmt"
 	"net"
 )
@@ -64,7 +65,7 @@ func (u *Uploader) sender() {
 			continue
 		}
 
-		fmt.Printf("Sent data to %s: %s\n", message.Address.String(), string(message.Data))
+		fmt.Printf("Sent data to %s: %s\n", message.Address.String(), hex.EncodeToString(message.Data))
 
 	}
 }
