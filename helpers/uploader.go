@@ -4,6 +4,8 @@ import (
 	"encoding/hex"
 	"fmt"
 	"net"
+
+	"github.com/fatih/color"
 )
 
 type Uploader struct {
@@ -65,7 +67,7 @@ func (u *Uploader) sender() {
 			continue
 		}
 
-		fmt.Printf("Sent data to %s: %s\n", message.Address.String(), hex.EncodeToString(message.Data))
-
+		s := fmt.Sprintf("Sent data to %s: %s\n", message.Address.String(), message.Data[15:])	
+		color.Cyan(s)
 	}
 }
