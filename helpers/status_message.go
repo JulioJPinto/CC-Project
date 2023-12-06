@@ -56,11 +56,14 @@ func (m *StatusMessage) Error() error {
 	}
 	err_strings := make([]string, len(m.Errors))
 	for i, e := range m.Errors {
-		err_strings[i] = e.Error()
+		if e != nil {
+			err_strings[i] = e.Error()
+		}
 	}
 
 	return fmt.Errorf(strings.Join(err_strings, ";"))
 }
+
 func (m *StatusMessage) AddError(err error) {
 	m.Errors = append(m.Errors, err)
 }
