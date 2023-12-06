@@ -3,6 +3,7 @@ package lib
 import (
 	"cc_project/protocol"
 	"cc_project/protocol/p2p"
+	"encoding/json"
 	"fmt"
 	"net"
 	"os"
@@ -44,6 +45,8 @@ func (node *Node) handleUDPMessage(addr *net.UDPAddr, packet []byte) error {
 	if message.IsRequest {
 
 		color.Green("itssa requestttt")
+		s, _ := json.Marshal(message.Header)
+		color.Green(string(s))
 		go node.HandleP2PRequest(addr, message)
 	} else {
 		color.Green("itssa responsss")
