@@ -66,7 +66,7 @@ func (u *Uploader) sender() {
 			continue
 		}
 
-		s := fmt.Sprintf("Sent data to %s: %s\n", message.Address.String(), message.Data[15:])
+		s := fmt.Sprintf("Sent data to %s: %s\n", message.Address.String(), string(message.Data[15:]))
 		color.Cyan(s)
 	}
 }
