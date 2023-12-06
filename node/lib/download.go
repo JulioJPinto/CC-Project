@@ -16,7 +16,7 @@ import (
 )
 
 func (node *Node) DownloadFile(file_hash protocol.FileHash) error {
-	color.Green("DOWNLOADIN" + fmt.Sprintf("%d", file_hash))
+	color.Green("DOWNLOADIN " + fmt.Sprintf("%d", file_hash))
 
 	if _, ok := node.Chanels.Load(file_hash); ok {
 		return fmt.Errorf("download already in progress")
