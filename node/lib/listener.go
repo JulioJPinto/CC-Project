@@ -79,6 +79,7 @@ func (node *Node) HandleP2PRequest(addr *net.UDPAddr, msg p2p.Message) {
 	addr.Port = 9090
 	ret_msg := p2p.GivYouFileSegmentResponse(f, segment, 0)
 	bytes, _ := ret_msg.Serialize()
+	color.Cyan(string(ret_msg.Payload))
 	node.sender.Send(*addr, bytes)
 }
 
