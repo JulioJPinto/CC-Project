@@ -49,7 +49,7 @@ func (m *StateManager) RegisterFile(device protocol.DeviceIdentifier, file_info 
 	}
 	m.State.Registered_files[file_info.Hash] = file_info
 	for i, s_hash := range file_info.SegmentHashes {
-		s := protocol.FileSegment{BlockOffset: int64(i * protocol.SegmentLength), FileHash: file_info.Hash, Hash: s_hash}
+		s := protocol.FileSegment{BlockOffset: int64(i), FileHash: file_info.Hash, Hash: s_hash}
 		p, ok := m.State.Nodes_segments[device]
 		if !ok {
 			p = make([]protocol.FileSegment, 1)
