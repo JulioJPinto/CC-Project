@@ -1,11 +1,15 @@
 package main
 
 import (
+	"bufio"
+	"cc_project/helpers"
 	"cc_project/protocol"
 	"cc_project/protocol/fstp"
 	"cc_project/tracker/state_manager"
 	"fmt"
+	"log"
 	"net"
+	"os"
 
 	"github.com/fatih/color"
 )
@@ -16,7 +20,7 @@ var s_manager *state_manager.StateManager
 
 // handleRequest(FSTPrequest) FSTPresponse
 func (s *handler) HandleRequest(conn net.Conn, req fstp.Request) fstp.Response {
-	fmt.Println()
+
 	color.Blue("Handling request")
 	str := fmt.Sprint("\theader: ", fstp.HeaderType(int(req.Header.Flags)), "\n\tdeserialized payload: ", req.Payload, "\n\tfrom: ", conn.RemoteAddr())
 	color.Blue(str)
@@ -71,11 +75,22 @@ func (s *handler) HandleIHaveFileRequest(device protocol.DeviceIdentifier, req *
 	return fstp.NewOkResponse()
 }
 
+var commands = map[string]func(any, []string) helpers.StatusMessage{
+	"shutdown": func(g any, a []string) helpers.StatusMessage { return shutdown() },
+}
+
+func shutdown() helpers.StatusMessage {
+	log.Fatal("sutdown")
+	return helpers.NewStatusMessage()
+}
 func main() {
+
 	s_manager = state_manager.NewManager("db.json")
 	// s_manager.Load()
 	my_handler := handler{}
 	config := fstp.Config{Host: "0.0.0.0", Port: "8080"}
 	server := fstp.NewServer(&config, &my_handler)
-	server.Run()
+	go server.Run()
+	reader := bufio.NewReader(os.Stdin)
+	helpers.TUI[any](reader, nil, commands)
 }

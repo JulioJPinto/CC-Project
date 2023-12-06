@@ -19,7 +19,6 @@ func NewStatusMessage() StatusMessage {
 
 func (m *StatusMessage) ShowMessages() string {
 	var ret string
-	ret += "Messages:\n"
 	for _, msg := range m.Messages {
 		ret += "\t" + msg + "\n"
 	}
@@ -27,7 +26,6 @@ func (m *StatusMessage) ShowMessages() string {
 }
 func (m *StatusMessage) ShowErrors() string {
 	var ret string
-	ret += "Errors:\n"
 	for _, err := range m.Errors {
 		ret += "\t" + err.Error() + "\n"
 	}
@@ -36,11 +34,9 @@ func (m *StatusMessage) ShowErrors() string {
 
 func (m *StatusMessage) Show() string {
 	var ret string
-	ret += "Messages:\n"
 	for _, msg := range m.Messages {
 		ret += "\t" + msg + "\n"
 	}
-	ret += "Errors:\n"
 	for _, err := range m.Errors {
 		ret += "\t" + err.Error() + "\n"
 	}

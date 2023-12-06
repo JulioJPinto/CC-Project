@@ -21,12 +21,12 @@ func TUI[T any](reader *bufio.Reader, client T, commands map[string]func(T, []st
 		f, ok := commands[command]
 		if !ok {
 			color.Red(fmt.Sprint("Invalid command: ", command))
-			break
-		}
-		status := f(client, split_line[1:])
-		color.Green(status.ShowMessages())
-		if status.Error() != nil {
-			color.Red(status.ShowErrors())
+		} else {
+			status := f(client, split_line[1:])
+			color.Green(status.ShowMessages())
+			if status.Error() != nil {
+				color.Red(status.ShowErrors())
+			}
 		}
 	}
 }
