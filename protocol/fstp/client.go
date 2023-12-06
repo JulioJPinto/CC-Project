@@ -55,10 +55,7 @@ func (client *Client) Request(request Request) (*Response, error) {
 		}
 	}
 	if debugging {
-
-		data := fmt.Sprint("\nrecieved: ", recieved_data)
 		str := fmt.Sprint("\nAKA: \n\t<", HeaderType(int(recieved_data[0])), ">\n\tPayload: ", string(recieved_data[HeaderSize:]))
-		color.Green(data)
 		color.Blue(str)
 	}
 	if err != nil {

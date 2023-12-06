@@ -6,6 +6,7 @@ import (
 	"cc_project/protocol/fstp"
 	"cc_project/protocol/p2p"
 	"encoding/json"
+	"path"
 
 	"github.com/fatih/color"
 
@@ -47,7 +48,7 @@ func (node *Node) DownloadFile(file_hash protocol.FileHash) error {
 		color.Cyan(string(k) + ": ")
 		for s := range v {
 			x, _ := json.Marshal(s)
-			color.Cyan(string(x))
+			color.Cyan("\t" + string(x))
 		}
 	}
 	if resp.Header.Flags == fstp.ErrResp {
@@ -55,7 +56,7 @@ func (node *Node) DownloadFile(file_hash protocol.FileHash) error {
 		return fmt.Errorf(err_resp.Err)
 	}
 
-	path := "../client_files/downloaded/" + "test"
+	path := node.NodeDir
 
 	go node.send_segment_requests(p)
 	go node.await_segment_responses(file_meta_data, path)
@@ -64,7 +65,7 @@ func (node *Node) DownloadFile(file_hash protocol.FileHash) error {
 }
 
 func (node *Node) send_segment_requests(m map[protocol.DeviceIdentifier][]protocol.FileSegment) {
-	color.Cyan("requesting ...")
+	color.Cyan("requesting ...  ")
 
 	for id, segments := range m {
 		for _, segment := range segments {
@@ -73,10 +74,11 @@ func (node *Node) send_segment_requests(m map[protocol.DeviceIdentifier][]protoc
 	}
 }
 
-func (node *Node) await_segment_responses(file protocol.FileMetaData, path string) {
-	color.Cyan("awayting ..." + path)
+func (node *Node) await_segment_responses(file protocol.FileMetaData, path_ string) {
+	color.Cyan("awayting ...  " + path_)
 	// defer node.Chanels.Delete(file.Hash)
-	writef, err := os.Create(path)
+	store_path := path.Join(path_, file.Name)
+	writef, err := os.Create(store_path)
 	if err != nil {
 		return
 	}
@@ -84,15 +86,22 @@ func (node *Node) await_segment_responses(file protocol.FileMetaData, path strin
 	ch := ch_.(chan p2p.Message)
 
 	for msg := range ch {
-		data := fmt.Sprint("\nrecieved: ", msg.Payload)
-		color.Cyan(data)
+		// show := fmt.Sprint("\nrecieved: ", string(msg.Payload))
+		// color.Cyan(show)
 		segmente_offset := msg.Header.SegmentOffset * protocol.SegmentLength
 		if file.SegmentHashes[msg.Header.SegmentOffset] == protocol.HashSegment(msg.Payload, len(msg.Payload)) {
 			color.Cyan("the hashin do be matchin")
 			writef.Seek(int64(segmente_offset), 0)
+			writef.Write([]byte(msg.Payload))
 		} else {
-			color.Cyan("the hashin do NOT be matchin")
+			color.Red("the hashin do NOT be matchin")
+			show := fmt.Sprintf("%d vs %d", file.SegmentHashes[msg.Header.SegmentOffset], protocol.HashSegment(msg.Payload, len(msg.Payload)))
+			color.Red(show)
+			writef.Seek(int64(segmente_offset), 0)
+			writef.Write([]byte(msg.Payload))
+
 		}
+		// writef.Seek(int64(segmente_offset), 0)
 	}
 }
 

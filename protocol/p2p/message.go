@@ -14,7 +14,7 @@ type Header struct {
 	TimeStamp     uint32            `json:"TimeStamp"`
 }
 
-func (h *Header) Serialize() ([]byte, error) {
+func (h *Header) serialize() ([]byte, error) {
 	load127 := h.Load << 1
 	header := [15]byte{}
 	// if h.IsRequest {
@@ -60,7 +60,7 @@ const PacketSize = 2048
 const HeaderSize = 15
 
 func (m *Message) Serialize() ([]byte, error) {
-	header_bytes, err := m.Header.Serialize()
+	header_bytes, err := m.Header.serialize()
 
 	if err != nil {
 		return nil, err
@@ -101,5 +101,5 @@ func GivYouFileSegmentResponse(segment_data protocol.FileSegment, segment []byte
 		SegmentOffset: uint32(segment_data.BlockOffset),
 		Length:        1,
 	}
-	return Response{Header: header, Payload: nil}
+	return Response{Header: header, Payload: segment}
 }

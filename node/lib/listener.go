@@ -21,7 +21,7 @@ func (node *Node) ListenOnUDP() error {
 	if err != nil {
 		return err
 	}
-	buffer := make([]byte, 1024) // Adjust the buffer size based on your needs
+	buffer := make([]byte, 2048) // Adjust the buffer size based on your needs
 
 	for {
 		n, addr, err := conn.ReadFromUDP(buffer)
@@ -65,12 +65,18 @@ func (node *Node) handleUDPMessage(addr *net.UDPAddr, packet []byte) error {
 }
 
 func (node *Node) HandleP2PRequest(addr *net.UDPAddr, msg p2p.Message) {
-	
+
 	f_path, ok := node.MyFiles[msg.FileId]
 	if !ok {
 		return
 	}
 	segment, err := getSegment(f_path, msg.Header.SegmentOffset)
+	if err != nil {
+		color.Red("ERROR GETTING SEGMENT")
+	} else {
+		color.Yellow("segment:")
+		color.Yellow(string(segment))
+	}
 	segment_data := node.KnownFiles[msg.FileId]
 	hash := segment_data.SegmentHashes[msg.Header.SegmentOffset]
 	f := protocol.FileSegment{
@@ -82,7 +88,8 @@ func (node *Node) HandleP2PRequest(addr *net.UDPAddr, msg p2p.Message) {
 	}
 	addr.Port = 9090
 	ret_msg := p2p.GivYouFileSegmentResponse(f, segment, 0)
-	bytes, _ := ret_msg.Serialize()
+	m := p2p.Message(ret_msg)
+	bytes, _ := m.Serialize()
 	color.Cyan(string(ret_msg.Payload))
 	node.sender.Send(*addr, bytes)
 }
@@ -95,7 +102,7 @@ func getSegment(f_path string, segmentOffset uint32) ([]byte, error) {
 	defer file.Close()
 
 	// Seek to the starting position (byte X)
-	startingByte := 10 // Replace with the actual starting byte
+	startingByte := segmentOffset * protocol.SegmentLength // Replace with the actual starting byte
 	_, err = file.Seek(int64(startingByte), 0)
 	if err != nil {
 		return nil, err
@@ -103,10 +110,11 @@ func getSegment(f_path string, segmentOffset uint32) ([]byte, error) {
 
 	// Read the desired number of bytes (from byte X to byte Y)
 	buffer := make([]byte, protocol.SegmentLength)
-	bytesRead, err := file.Read(buffer)
+	// 	_, err = file.Read(buffer)
+	_, err = file.Read(buffer)
 	if err != nil {
 		return nil, err
 	}
-	return buffer[:bytesRead], nil
+	return buffer[:], nil
 	// Print the read bytes
 }
