@@ -3,13 +3,17 @@ package lib
 import (
 	"cc_project/protocol"
 	"cc_project/protocol/p2p"
+	"encoding/json"
 	"fmt"
 	"net"
 	"os"
+
+	"github.com/fatih/color"
 )
 
 func (node *Node) ListenOnUDP() error {
-	serverAddr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%s", node.P2PConfig.Host, node.P2PConfig.Port))
+	// fmt.Sprintf("%s:%s", node.P2PConfig.Host, node.P2PConfig.Port)
+	serverAddr, err := net.ResolveUDPAddr("udp", "0.0.0.0:9090")
 	if err != nil {
 		return err
 	}
@@ -27,7 +31,8 @@ func (node *Node) ListenOnUDP() error {
 		}
 
 		data := buffer[:n]
-		fmt.Printf("Received %d bytes from %s: %s\n", n, addr.String(), string(data))
+		s := fmt.Sprintf("\n\nReceived %d bytes from %s: %s\n\n", n, addr.String(), string(data))
+		color.Green(s)
 		node.handleUDPMessage(addr, data)
 	}
 }
@@ -38,11 +43,20 @@ func (node *Node) handleUDPMessage(addr *net.UDPAddr, packet []byte) error {
 		return err
 	}
 	if message.IsRequest {
+
+		color.Green("itssa requestttt")
+		s, _ := json.Marshal(message.Header)
+		color.Green(string(s))
 		go node.HandleP2PRequest(addr, message)
 	} else {
+		color.Green("itssa responsss")
+
 		hash := message.FileId
-		queue, ok := node.Chanels.Get(hash)
+		queue_, ok := node.Chanels.Load(hash)
+		queue := queue_.(chan p2p.Message)
 		if !ok {
+			color.Red("channel dont exist")
+			// fmt.Println(node.Chanels.())
 			return nil
 		}
 		queue <- message
@@ -51,15 +65,26 @@ func (node *Node) handleUDPMessage(addr *net.UDPAddr, packet []byte) error {
 }
 
 func (node *Node) HandleP2PRequest(addr *net.UDPAddr, msg p2p.Message) {
-	f_path, ok := node.MyFiles[msg.Header.FileId]
+	
+	f_path, ok := node.MyFiles[msg.FileId]
 	if !ok {
 		return
 	}
 	segment, err := getSegment(f_path, msg.Header.SegmentOffset)
+	segment_data := node.KnownFiles[msg.FileId]
+	hash := segment_data.SegmentHashes[msg.Header.SegmentOffset]
+	f := protocol.FileSegment{
+		BlockOffset: int64(msg.SegmentOffset),
+		FileHash:    msg.FileId,
+		Hash:        hash}
 	if err != nil {
 		return
 	}
-	node.sender.Send(*addr, segment)
+	addr.Port = 9090
+	ret_msg := p2p.GivYouFileSegmentResponse(f, segment, 0)
+	bytes, _ := ret_msg.Serialize()
+	color.Cyan(string(ret_msg.Payload))
+	node.sender.Send(*addr, bytes)
 }
 
 func getSegment(f_path string, segmentOffset uint32) ([]byte, error) {

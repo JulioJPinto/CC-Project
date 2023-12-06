@@ -8,7 +8,7 @@ import (
 
 type StateManager struct {
 	filepath string
-	State    *State
+	*State
 }
 
 func NewManager(filepath string) *StateManager {
@@ -33,10 +33,12 @@ func (m *StateManager) DeviceIsRegistered(deviceID protocol.DeviceIdentifier) bo
 func (m *StateManager) LeaveNetwork(device protocol.DeviceIdentifier) error {
 	f := func(d protocol.Device) bool { return d.GetIdentifier() == device }
 	m.State.Registered_nodes.RemoveIf(f)
+	// segments_nodes := m.SegmentsNodes()
 	delete(m.State.Nodes_segments, device)
-
+	
 	return nil
 }
+
 
 func (m *StateManager) RegisterFile(device protocol.DeviceIdentifier, file_info protocol.FileMetaData) error {
 	if m.FileIsRegistered(file_info.Hash) {
@@ -49,7 +51,7 @@ func (m *StateManager) RegisterFile(device protocol.DeviceIdentifier, file_info 
 	}
 	m.State.Registered_files[file_info.Hash] = file_info
 	for i, s_hash := range file_info.SegmentHashes {
-		s := protocol.FileSegment{BlockOffset: int64(i * protocol.SegmentLength), FileHash: file_info.Hash, Hash: s_hash}
+		s := protocol.FileSegment{BlockOffset: int64(i), FileHash: file_info.Hash, Hash: s_hash}
 		p, ok := m.State.Nodes_segments[device]
 		if !ok {
 			p = make([]protocol.FileSegment, 1)

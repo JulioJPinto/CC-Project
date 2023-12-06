@@ -5,10 +5,16 @@ import (
 	"strings"
 )
 
-
 type StatusMessage struct {
 	Messages []string
 	Errors   []error
+}
+
+func NewStatusMessage() StatusMessage {
+	msg := StatusMessage{}
+	msg.Messages = []string{}
+	msg.Errors = []error{}
+	return msg
 }
 
 func (m *StatusMessage) ShowMessages() string {
@@ -42,15 +48,26 @@ func (m *StatusMessage) Show() string {
 }
 
 func (m *StatusMessage) Error() error {
-	if len(m.Errors) == 0 {return nil}
+	if m.Errors == nil {
+		return nil
+	}
+	if len(m.Errors) == 0 {
+		return nil
+	}
 	err_strings := make([]string, len(m.Errors))
 	for i, e := range m.Errors {
-		err_strings[i] = e.Error()
+		if e != nil {
+			err_strings[i] = e.Error()
+		}
 	}
-	
+
 	return fmt.Errorf(strings.Join(err_strings, ";"))
 }
+
 func (m *StatusMessage) AddError(err error) {
+	if err == nil {
+		return
+	}
 	m.Errors = append(m.Errors, err)
 }
 

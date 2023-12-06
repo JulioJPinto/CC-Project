@@ -3,6 +3,8 @@ package helpers
 import (
 	"fmt"
 	"net"
+
+	"github.com/fatih/color"
 )
 
 type Uploader struct {
@@ -64,7 +66,7 @@ func (u *Uploader) sender() {
 			continue
 		}
 
-		fmt.Printf("Sent data to %s: %s\n", message.Address.String(), string(message.Data))
-
+		s := fmt.Sprintf("Sent data to %s: %s\n", message.Address.String(), string(message.Data[15:]))
+		color.Cyan(s)
 	}
 }

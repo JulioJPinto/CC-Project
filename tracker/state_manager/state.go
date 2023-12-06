@@ -7,7 +7,7 @@ import (
 )
 
 type State struct {
-	Registered_nodes *helpers.Set[protocol.Device]                    `json:"registered_nodes"`
+	Registered_nodes *helpers.Set[protocol.Device]                        `json:"registered_nodes"`
 	Registered_files map[protocol.FileHash]protocol.FileMetaData          `json:"registered_files"` // mapeia a hash do ficheiro para os dados
 	Nodes_segments   map[protocol.DeviceIdentifier][]protocol.FileSegment `json:"nodes_segments"`   // mapeia o
 }
@@ -18,6 +18,18 @@ func newState() *State {
 	s.Registered_files = make(map[protocol.FileHash]protocol.FileMetaData)
 	s.Nodes_segments = make(map[protocol.DeviceIdentifier][]protocol.FileSegment)
 	return s
+}
+
+func (s *State) SegmentsNodes() map[protocol.FileSegment][]protocol.DeviceIdentifier {
+	invertedMap := make(map[protocol.FileSegment][]protocol.DeviceIdentifier)
+
+	for deviceID, fileSegments := range s.Nodes_segments {
+		for _, fileSegment := range fileSegments {
+			invertedMap[fileSegment] = append(invertedMap[fileSegment], deviceID)
+		}
+	}
+
+	return invertedMap
 }
 
 func (s *State) Serialize() ([]byte, error) {

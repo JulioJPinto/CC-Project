@@ -6,6 +6,9 @@ import (
 	"cc_project/protocol/fstp"
 	"cc_project/protocol/p2p"
 	"encoding/json"
+
+	"github.com/fatih/color"
+
 	"fmt"
 	"net"
 	"os"
@@ -13,10 +16,14 @@ import (
 )
 
 func (node *Node) DownloadFile(file_hash protocol.FileHash) error {
-	if _, ok := node.Chanels.Get(file_hash); ok {
+	color.Green("DOWNLOADIN " + fmt.Sprintf("%d", file_hash))
+
+	if _, ok := node.Chanels.Load(file_hash); ok {
 		return fmt.Errorf("download already in progress")
 	}
-
+	channel := make(chan p2p.Message)
+	node.Chanels.Store(file_hash, channel)
+	color.Green("created channel for " + fmt.Sprintf("%d", file_hash))
 	file_meta_data, ok := node.KnownFiles[file_hash] // file_meta_data,ok := c.KnownFiles.get(file_hash)
 
 	if !ok {
@@ -31,12 +38,18 @@ func (node *Node) DownloadFile(file_hash protocol.FileHash) error {
 	if err != nil {
 		return err
 	}
-	print(json.Marshal(resp))
 	pay, ok := resp.Payload.(*fstp.WhoHasRespProps)
 	if !ok {
 		return fmt.Errorf("invalid payload")
 	}
 	p := map[protocol.DeviceIdentifier][]protocol.FileSegment(*pay)
+	for k, v := range p {
+		color.Cyan(string(k) + ": ")
+		for s := range v {
+			x, _ := json.Marshal(s)
+			color.Cyan(string(x))
+		}
+	}
 	if resp.Header.Flags == fstp.ErrResp {
 		err_resp := resp.Payload.(*fstp.ErrorResponse)
 		return fmt.Errorf(err_resp.Err)
@@ -51,6 +64,8 @@ func (node *Node) DownloadFile(file_hash protocol.FileHash) error {
 }
 
 func (node *Node) send_segment_requests(m map[protocol.DeviceIdentifier][]protocol.FileSegment) {
+	color.Cyan("requesting ...")
+
 	for id, segments := range m {
 		for _, segment := range segments {
 			node.RequestSegment(id, segment)
@@ -59,16 +74,24 @@ func (node *Node) send_segment_requests(m map[protocol.DeviceIdentifier][]protoc
 }
 
 func (node *Node) await_segment_responses(file protocol.FileMetaData, path string) {
+	color.Cyan("awayting ..." + path)
+	// defer node.Chanels.Delete(file.Hash)
 	writef, err := os.Create(path)
 	if err != nil {
 		return
 	}
-	ch, _ := node.Chanels.Get(file.Hash)
+	ch_, _ := node.Chanels.Load(file.Hash)
+	ch := ch_.(chan p2p.Message)
 
 	for msg := range ch {
+		data := fmt.Sprint("\nrecieved: ", msg.Payload)
+		color.Cyan(data)
 		segmente_offset := msg.Header.SegmentOffset * protocol.SegmentLength
 		if file.SegmentHashes[msg.Header.SegmentOffset] == protocol.HashSegment(msg.Payload, len(msg.Payload)) {
+			color.Cyan("the hashin do be matchin")
 			writef.Seek(int64(segmente_offset), 0)
+		} else {
+			color.Cyan("the hashin do NOT be matchin")
 		}
 	}
 }
@@ -96,5 +119,6 @@ func (node *Node) RequestSegment(peer protocol.DeviceIdentifier, segment protoco
 		return
 	}
 	addr, _ := net.ResolveUDPAddr("udp", string(peer))
+	addr.Port = 9090
 	node.sender.Send(*addr, b)
 }

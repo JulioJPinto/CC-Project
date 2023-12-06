@@ -91,3 +91,15 @@ func GimmeFileSegmentRequest(segment protocol.FileSegment, time_stamp uint32) Re
 	}
 	return Request{Header: header, Payload: nil}
 }
+
+func GivYouFileSegmentResponse(segment_data protocol.FileSegment, segment []byte, time_stamp uint32) Response {
+	header := Header{
+		IsRequest:     false,
+		Load:          0,
+		FileId:        segment_data.FileHash,
+		TimeStamp:     time_stamp,
+		SegmentOffset: uint32(segment_data.BlockOffset),
+		Length:        1,
+	}
+	return Response{Header: header, Payload: nil}
+}

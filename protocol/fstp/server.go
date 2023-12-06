@@ -90,6 +90,8 @@ func (instance *fstp_routine) handleClient() {
 		resp := instance.handler.HandleRequest(instance.conn, req)
 
 		resp_msg := Message(resp)
+		fmt.Printf("response payload: %s \n", resp.Payload)
+
 		response, err := resp_msg.Serialize()
 		if err != nil {
 			fmt.Println("Error serializing:", err)

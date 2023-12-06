@@ -4,6 +4,7 @@ import (
 	"cc_project/helpers"
 	"cc_project/protocol"
 	"cc_project/protocol/fstp"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -128,27 +129,28 @@ func (node *Node) WhoHas(files []string) helpers.StatusMessage {
 	ret := helpers.StatusMessage{}
 	for _, f := range files {
 		hash, err := node.ResolveFileID(f)
-		print("hash:", hash)
 		if err != nil {
 			ret.AddError(err)
 			continue
 		}
 		fdata := node.KnownFiles[protocol.FileHash(hash)]
 		resp, _ := node.FSTPclient.Request(fstp.NewWhoHasRequest(fstp.WhoHasReqProps{File: protocol.FileHash(hash)}))
-		pay, ok := resp.Payload.(*fstp.WhoHasRespProps)
-		fmt.Printf("pay: %v\n", pay)
+		resp_payload, ok := resp.Payload.(*fstp.WhoHasRespProps)
 		if !ok {
 			ret.AddError(fmt.Errorf("file %s not found", f))
 			continue
 		}
-		print(pay)
-		fmt.Println(fdata.Name, ":", fdata.Hash)
+		for k, v := range *resp_payload {
+			j, _ := json.Marshal(v)
+			ret.AddMessage(nil, fmt.Sprint(string(k), string(j)))
+		}
+		ret.AddMessage(nil, fmt.Sprint(fdata.Name, ":", fdata.Hash))
 	}
 	return ret
 }
 
 func (node *Node) Download(args []string) helpers.StatusMessage {
-	ret := helpers.StatusMessage{}
+	ret := helpers.NewStatusMessage()
 	hash, err := node.ResolveFileID(args[0])
 	if err != nil {
 		node.FetchFiles(nil)
@@ -163,8 +165,9 @@ func (node *Node) Download(args []string) helpers.StatusMessage {
 		fmt.Println("already have", f_name)
 	} else {
 		fmt.Println("downloading", hash, "...")
-		node.DownloadFile(hash)
+		node.DownloadFile(hash) // go!!!!
 	}
+	ret.AddMessage(nil, "Download in progress")
 	return ret
 }
 

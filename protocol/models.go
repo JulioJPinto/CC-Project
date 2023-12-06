@@ -29,11 +29,11 @@ type FileMetaData struct {
 }
 
 // length of a file segment in bytes
-const SegmentLength = 128
+const SegmentLength = 1024
 
 type FileSegment struct {
 	BlockOffset int64    `json:"BlockOffset"` //
-	FileHash    FileHash `json:"FileID"` // Foriegn Key refere um FileMetaData
+	FileHash    FileHash `json:"FileID"`      // Foriegn Key refere um FileMetaData
 	Hash        Hash     `json:"Hash"`
 }
 
