@@ -33,7 +33,7 @@ func (m *StateManager) DeviceIsRegistered(deviceID protocol.DeviceIdentifier) bo
 func (m *StateManager) LeaveNetwork(device protocol.DeviceIdentifier) error {
 	f := func(d protocol.Device) bool { return d.GetIdentifier() == device }
 	m.State.Registered_nodes.RemoveIf(f)
-	segments_nodes := m.SegmentsNodes()
+	// segments_nodes := m.SegmentsNodes()
 	delete(m.State.Nodes_segments, device)
 	
 	return nil

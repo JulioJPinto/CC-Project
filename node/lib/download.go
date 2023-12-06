@@ -74,7 +74,7 @@ func (node *Node) send_segment_requests(m map[protocol.DeviceIdentifier][]protoc
 }
 
 func (node *Node) await_segment_responses(file protocol.FileMetaData, path string) {
-	color.Cyan("awayting ...")
+	color.Cyan("awayting ..." + path)
 	// defer node.Chanels.Delete(file.Hash)
 	writef, err := os.Create(path)
 	if err != nil {
