@@ -135,13 +135,11 @@ func (node *Node) WhoHas(files []string) helpers.StatusMessage {
 		}
 		fdata := node.KnownFiles[protocol.FileHash(hash)]
 		resp, _ := node.FSTPclient.Request(fstp.NewWhoHasRequest(fstp.WhoHasReqProps{File: protocol.FileHash(hash)}))
-		pay, ok := resp.Payload.(*fstp.WhoHasRespProps)
-		fmt.Printf("pay: %v\n", pay)
+		_, ok := resp.Payload.(*fstp.WhoHasRespProps)
 		if !ok {
 			ret.AddError(fmt.Errorf("file %s not found", f))
 			continue
 		}
-		print(pay)
 		fmt.Println(fdata.Name, ":", fdata.Hash)
 	}
 	return ret

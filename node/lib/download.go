@@ -38,12 +38,18 @@ func (node *Node) DownloadFile(file_hash protocol.FileHash) error {
 	if err != nil {
 		return err
 	}
-	print(json.Marshal(resp))
 	pay, ok := resp.Payload.(*fstp.WhoHasRespProps)
 	if !ok {
 		return fmt.Errorf("invalid payload")
 	}
 	p := map[protocol.DeviceIdentifier][]protocol.FileSegment(*pay)
+	for k, v := range p {
+		color.Cyan(string(k) + ": ")
+		for s := range v {
+			x, _ := json.Marshal(s)
+			color.Cyan(string(x))
+		}
+	}
 	if resp.Header.Flags == fstp.ErrResp {
 		err_resp := resp.Payload.(*fstp.ErrorResponse)
 		return fmt.Errorf(err_resp.Err)
