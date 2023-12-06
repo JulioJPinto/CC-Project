@@ -65,6 +65,9 @@ func (m *StatusMessage) Error() error {
 }
 
 func (m *StatusMessage) AddError(err error) {
+	if err == nil {
+		return
+	}
 	m.Errors = append(m.Errors, err)
 }
 
