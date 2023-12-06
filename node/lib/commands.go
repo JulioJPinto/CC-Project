@@ -4,6 +4,7 @@ import (
 	"cc_project/helpers"
 	"cc_project/protocol"
 	"cc_project/protocol/fstp"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -135,12 +136,16 @@ func (node *Node) WhoHas(files []string) helpers.StatusMessage {
 		}
 		fdata := node.KnownFiles[protocol.FileHash(hash)]
 		resp, _ := node.FSTPclient.Request(fstp.NewWhoHasRequest(fstp.WhoHasReqProps{File: protocol.FileHash(hash)}))
-		_, ok := resp.Payload.(*fstp.WhoHasRespProps)
+		resp_payload, ok := resp.Payload.(*fstp.WhoHasRespProps)
 		if !ok {
 			ret.AddError(fmt.Errorf("file %s not found", f))
 			continue
 		}
-		fmt.Println(fdata.Name, ":", fdata.Hash)
+		for k, v := range *resp_payload {
+			j, _ := json.Marshal(v)
+			ret.AddMessage(nil, fmt.Sprint(string(k), string(j)))
+		}
+		ret.AddMessage(nil, fmt.Sprint(fdata.Name, ":", fdata.Hash))
 	}
 	return ret
 }
