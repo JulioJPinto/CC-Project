@@ -16,26 +16,35 @@ import (
 	"time"
 )
 
-func (node *Node) DownloadFile(file_hash protocol.FileHash) error {
-	color.Green("DOWNLOADIN " + fmt.Sprintf("%d", file_hash))
+type Downloader struct {
+	node    *Node
+	file    protocol.FileHash
+	channel chan p2p.Message
+}
 
-	if _, ok := node.Chanels.Load(file_hash); ok {
-		return fmt.Errorf("download already in progress")
-	}
+func (d *Downloader) ForwardMessage(msg p2p.Message) {
+	d.channel <- msg
+}
+
+func NewDownloader(node *Node, file protocol.FileHash) *Downloader {
 	channel := make(chan p2p.Message)
-	node.Chanels.Store(file_hash, channel)
-	color.Green("created channel for " + fmt.Sprintf("%d", file_hash))
-	file_meta_data, ok := node.KnownFiles[file_hash] // file_meta_data,ok := c.KnownFiles.get(file_hash)
+	return &Downloader{node: node, file: file, channel: channel}
+}
+func (d *Downloader) Start() error {
+	channel := make(chan p2p.Message)
+	d.node.Chanels.Store(d.file, channel)
+	color.Green("created channel for " + fmt.Sprintf("%d", d.file))
+	file_meta_data, ok := d.node.KnownFiles[d.file] // file_meta_data,ok := c.KnownFiles.get(d.file)
 
 	if !ok {
-		node.FetchFiles(nil)
-		file_meta_data, ok = node.KnownFiles[file_hash]
+		d.node.FetchFiles(nil)
+		file_meta_data, ok = d.node.KnownFiles[d.file]
 		if !ok {
-			return fmt.Errorf("files does not exist: %v", file_hash)
+			return fmt.Errorf("files does not exist: %v", d.file)
 		}
 	}
 
-	resp, err := node.FSTPclient.Request(fstp.NewWhoHasRequest(fstp.WhoHasReqProps{File: file_hash}))
+	resp, err := d.node.FSTPclient.Request(fstp.NewWhoHasRequest(fstp.WhoHasReqProps{File: d.file}))
 	if err != nil {
 		return err
 	}
@@ -56,12 +65,21 @@ func (node *Node) DownloadFile(file_hash protocol.FileHash) error {
 		return fmt.Errorf(err_resp.Err)
 	}
 
-	path := node.NodeDir
+	path := d.node.NodeDir
 
-	go node.send_segment_requests(p)
-	go node.await_segment_responses(file_meta_data, path)
+	go d.node.await_segment_responses(file_meta_data, path)
+	d.node.send_segment_requests(p)
 
 	return nil
+}
+func (node *Node) DownloadFile(file_hash protocol.FileHash) error {
+	color.Green("DOWNLOADIN " + fmt.Sprintf("%d", file_hash))
+
+	if _, ok := node.Chanels.Load(file_hash); ok {
+		return fmt.Errorf("download already in progress")
+	}
+	downloader := NewDownloader(node, file_hash)
+	return downloader.Start()
 }
 
 func (node *Node) send_segment_requests(m map[protocol.DeviceIdentifier][]protocol.FileSegment) {

@@ -8,7 +8,3 @@ type PeerStats struct{
 	NPackets uint32
 	NDroppedPackets uint32
 }
-
-type PeersStats struct {
-
-}

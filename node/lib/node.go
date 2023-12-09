@@ -12,6 +12,7 @@ type Node struct {
 	FSTPclient *fstp.Client
 	P2PConfig  p2p.Config
 	sender     *helpers.Uploader
+	Downloads  helpers.SyncList[Downloader]
 	Chanels    *sync.Map // [protocol.FileHash, chan p2p.Message]
 	NodeDir    string                       // path to the folder where files will be stored
 	MyFiles    map[protocol.FileHash]string // paths to my files

@@ -9,6 +9,8 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+
+	"github.com/fatih/color"
 )
 
 func (node *Node) ResolveFileID(name string) (protocol.FileHash, error) {
@@ -151,24 +153,34 @@ func (node *Node) WhoHas(files []string) helpers.StatusMessage {
 
 func (node *Node) Download(args []string) helpers.StatusMessage {
 	ret := helpers.NewStatusMessage()
-	hash, err := node.ResolveFileID(args[0])
+	file_hash, err := node.ResolveFileID(args[0])
 	if err != nil {
 		node.FetchFiles(nil)
-		hash, err = node.ResolveFileID(args[0])
+		file_hash, err = node.ResolveFileID(args[0])
 		ret.AddError(err)
 		if err != nil {
 			return ret
 		}
 	}
-	if _, ok := node.MyFiles[hash]; ok {
-		f_name := node.MyFiles[hash]
-		fmt.Println("already have", f_name)
+	if _, ok := node.MyFiles[file_hash]; ok {
+		f_name := node.MyFiles[file_hash]
+		ret.AddMessage(nil, "already have"+f_name)
+	} else if _, ok := node.Chanels.Load(file_hash); ok {
+		ret.AddError(fmt.Errorf("download already in progress"))
 	} else {
-		fmt.Println("downloading", hash, "...")
-		node.DownloadFile(hash) // go!!!!
+		color.Green("DOWNLOADIN " + fmt.Sprintf("%d", file_hash))
+		downloader := NewDownloader(node, file_hash)
+		go downloader.Start() // go!!!!
+		ret.AddMessage(nil, "Download in progress")
 	}
-	ret.AddMessage(nil, "Download in progress")
 	return ret
+}
+
+func (client *Node) Status(args []string) helpers.StatusMessage {
+	msg := helpers.NewStatusMessage()
+
+	return msg
+
 }
 
 func (client *Node) Test(args []string) helpers.StatusMessage {
