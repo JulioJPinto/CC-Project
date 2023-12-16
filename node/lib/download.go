@@ -10,16 +10,28 @@ import (
 
 	"github.com/fatih/color"
 
+	"cc_project/helpers/sync"
 	"fmt"
 	"net"
 	"os"
 	"time"
 )
 
+type Status int
+
+const (
+	Missing    = -1
+	Downloaded = 0
+	Pending    = 1 // pending for n iterations
+)
+
 type Downloader struct {
-	node    *Node
-	file    protocol.FileHash
-	channel chan p2p.Message
+	node     *Node
+	file     protocol.FileHash
+	channel  chan p2p.Message
+	segments *sync.Map[int, Status]
+	done     *sync.Flag
+	whoHas   map[protocol.DeviceIdentifier][]protocol.FileSegment
 }
 
 func (d *Downloader) ForwardMessage(msg p2p.Message) {
@@ -28,7 +40,16 @@ func (d *Downloader) ForwardMessage(msg p2p.Message) {
 
 func NewDownloader(node *Node, file protocol.FileHash) *Downloader {
 	channel := make(chan p2p.Message)
-	return &Downloader{node: node, file: file, channel: channel}
+	done := sync.Flag{}
+	done.Unset()
+	return &Downloader{
+		node:     node,
+		file:     file,
+		channel:  channel,
+		segments: &sync.Map[int, Status]{},
+		done:     &done,
+		whoHas:   nil,
+	}
 }
 func (d *Downloader) Start() error {
 	channel := make(chan p2p.Message)
@@ -52,7 +73,10 @@ func (d *Downloader) Start() error {
 	if !ok {
 		return fmt.Errorf("invalid payload")
 	}
+
 	p := map[protocol.DeviceIdentifier][]protocol.FileSegment(*pay)
+	d.whoHas = p
+
 	for k, v := range p {
 		color.Cyan(string(k) + ": ")
 		for s := range v {
@@ -65,11 +89,16 @@ func (d *Downloader) Start() error {
 		return fmt.Errorf(err_resp.Err)
 	}
 
+	for n := range file_meta_data.SegmentHashes {
+		d.segments.Store(n, Missing)
+	}
+
 	path := d.node.NodeDir
 
-	go d.node.await_segment_responses(file_meta_data, path)
-	d.node.send_segment_requests(p)
-
+	go d.await_segment_responses(file_meta_data, path)
+	d.send_segment_requests()
+	close(channel)
+	d.node.Chanels.Delete(d.file)
 	return nil
 }
 func (node *Node) DownloadFile(file_hash protocol.FileHash) error {
@@ -82,17 +111,35 @@ func (node *Node) DownloadFile(file_hash protocol.FileHash) error {
 	return downloader.Start()
 }
 
-func (node *Node) send_segment_requests(m map[protocol.DeviceIdentifier][]protocol.FileSegment) {
+func (d *Downloader) send_segment_requests() {
+
 	color.Cyan("requesting ...  ")
 
-	for id, segments := range m {
-		for _, segment := range segments {
-			node.RequestSegment(id, segment)
+	for {
+		if d.done.IsSet() {
+			break
+		}
+		for id, segments := range d.whoHas {
+			for _, segment := range segments {
+				// var status Status = Missing
+				status, _ := d.segments.Load(int(segment.BlockOffset))
+				if status == Missing {
+					d.node.RequestSegment(id, segment)
+				}
+			}
 		}
 	}
 }
+func (d *Downloader) checkIfDone() {
+	done := d.segments.Fold(true, func(a any, k int, v Status) any {
+		return a == true && v == Downloaded
+	})
+	if done == true {
+		d.done.Set()
+	}
 
-func (node *Node) await_segment_responses(file protocol.FileMetaData, path_ string) {
+}
+func (d *Downloader) await_segment_responses(file protocol.FileMetaData, path_ string) {
 	color.Cyan("awayting ...  " + path_)
 	// defer node.Chanels.Delete(file.Hash)
 	store_path := path.Join(path_, file.Name)
@@ -100,7 +147,7 @@ func (node *Node) await_segment_responses(file protocol.FileMetaData, path_ stri
 	if err != nil {
 		return
 	}
-	ch_, _ := node.Chanels.Load(file.Hash)
+	ch_, _ := d.node.Chanels.Load(file.Hash)
 	ch := ch_.(chan p2p.Message)
 
 	for msg := range ch {
@@ -109,12 +156,16 @@ func (node *Node) await_segment_responses(file protocol.FileMetaData, path_ stri
 		segmente_offset := msg.Header.SegmentOffset * protocol.SegmentLength
 		if file.SegmentHashes[msg.Header.SegmentOffset] == protocol.HashSegment(msg.Payload, len(msg.Payload)) {
 			color.Cyan("the hashin do be matchin")
+			d.segments.Store(int(msg.Header.SegmentOffset), Downloaded)
+			go d.checkIfDone()
 			writef.Seek(int64(segmente_offset), 0)
 			writef.Write([]byte(msg.Payload))
 		} else {
 			color.Red("the hashin do NOT be matchin")
 			show := fmt.Sprintf("%d vs %d", file.SegmentHashes[msg.Header.SegmentOffset], protocol.HashSegment(msg.Payload, len(msg.Payload)))
 			color.Red(show)
+			d.segments.Store(int(msg.Header.SegmentOffset), Downloaded)
+			go d.checkIfDone()
 			writef.Seek(int64(segmente_offset), 0)
 			writef.Write([]byte(msg.Payload))
 

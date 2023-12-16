@@ -168,7 +168,7 @@ func (node *Node) Download(args []string) helpers.StatusMessage {
 	} else if _, ok := node.Chanels.Load(file_hash); ok {
 		ret.AddError(fmt.Errorf("download already in progress"))
 	} else {
-		color.Green("DOWNLOADIN " + fmt.Sprintf("%d", file_hash))
+		color.Green("downloading " + fmt.Sprintf("%d", file_hash))
 		downloader := NewDownloader(node, file_hash)
 		go downloader.Start() // go!!!!
 		ret.AddMessage(nil, "Download in progress")

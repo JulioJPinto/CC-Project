@@ -53,8 +53,8 @@ func (node *Node) handleUDPMessage(addr *net.UDPAddr, packet []byte) error {
 
 		hash := message.FileId
 		queue_, ok := node.Chanels.Load(hash)
-		queue := queue_.(chan p2p.Message)
-		if !ok {
+		queue, ok2 := queue_.(chan p2p.Message)
+		if !ok && ok2 {
 			color.Red("channel dont exist")
 			// fmt.Println(node.Chanels.())
 			return nil
