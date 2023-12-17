@@ -5,7 +5,6 @@ import (
 	"cc_project/protocol"
 	"cc_project/protocol/fstp"
 	"cc_project/protocol/p2p"
-	"encoding/hex"
 	"encoding/json"
 	"path"
 
@@ -114,9 +113,6 @@ func (node *Node) DownloadFile(file_hash protocol.FileHash) error {
 }
 
 func (d *Downloader) send_segment_requests() {
-
-	color.Cyan("requesting ...  ")
-
 	for {
 		if d.done.IsSet() {
 			break
@@ -127,9 +123,11 @@ func (d *Downloader) send_segment_requests() {
 				status, _ := d.segments.Load(int(segment.BlockOffset))
 				if status == Missing {
 					d.node.RequestSegment(id, segment)
+					fmt.Println("just requested", segment.BlockOffset)
 				}
+				d.segments.Store(int(segment.BlockOffset), Pending)
 			}
-			time.Sleep(100 * time.Millisecond)
+			time.Sleep(1000 * time.Millisecond)
 		}
 	}
 }
@@ -143,24 +141,18 @@ func (d *Downloader) checkIfDone() {
 
 }
 func (d *Downloader) await_segment_responses(file protocol.FileMetaData, path_ string) {
-	color.Cyan("awayting ...  " + path_)
-	// defer node.Chanels.Delete(file.Hash)
 	store_path := path.Join(path_, file.Name)
 	writef, err := os.Create(store_path)
 	if err != nil {
 		return
 	}
-	
+
 	for msg := range d.channel {
-		// show := fmt.Sprint("\nrecieved: ", string(msg.Payload))
-		// color.Cyan(show)
 		segmente_offset := msg.Header.SegmentOffset * protocol.SegmentMaxLength
 		headerJSON, _ := json.MarshalIndent(msg.Header, "", "  ")
 		fmt.Println(string(headerJSON))
-		fmt.Println(hex.EncodeToString(msg.Payload))
 
 		if file.SegmentHashes[msg.Header.SegmentOffset] == protocol.HashSegment(msg.Payload, int(msg.Length)) {
-			color.Cyan("the hashin do be matchin")
 			d.segments.Store(int(msg.Header.SegmentOffset), Downloaded)
 			go d.checkIfDone()
 			writef.Seek(int64(segmente_offset), 0)
@@ -169,8 +161,7 @@ func (d *Downloader) await_segment_responses(file protocol.FileMetaData, path_ s
 			color.Red("the hashin do NOT be matchin")
 			show := fmt.Sprintf("%d vs %d", file.SegmentHashes[msg.Header.SegmentOffset], protocol.HashSegment(msg.Payload, int(msg.Length)))
 			color.Red(show)
-			os.Exit(1)
-			d.segments.Store(int(msg.Header.SegmentOffset), Downloaded)
+			// d.node.PeerStats()
 			go d.checkIfDone()
 			writef.Seek(int64(segmente_offset), 0)
 			writef.Write([]byte(msg.Payload))
