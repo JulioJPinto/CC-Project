@@ -5,6 +5,7 @@ import (
 	"cc_project/protocol"
 	"cc_project/protocol/fstp"
 	"cc_project/protocol/p2p"
+	"encoding/hex"
 	"encoding/json"
 	"path"
 
@@ -127,6 +128,7 @@ func (d *Downloader) send_segment_requests() {
 					d.node.RequestSegment(id, segment)
 				}
 			}
+			time.Sleep(100 * time.Millisecond)
 		}
 	}
 }
@@ -153,8 +155,12 @@ func (d *Downloader) await_segment_responses(file protocol.FileMetaData, path_ s
 	for msg := range ch {
 		// show := fmt.Sprint("\nrecieved: ", string(msg.Payload))
 		// color.Cyan(show)
-		segmente_offset := msg.Header.SegmentOffset * protocol.SegmentLength
-		if file.SegmentHashes[msg.Header.SegmentOffset] == protocol.HashSegment(msg.Payload, len(msg.Payload)) {
+		segmente_offset := msg.Header.SegmentOffset * protocol.SegmentMaxLength
+		headerJSON, _ := json.MarshalIndent(msg.Header, "", "  ")
+		fmt.Println(string(headerJSON))
+		fmt.Println(hex.EncodeToString(msg.Payload))
+
+		if file.SegmentHashes[msg.Header.SegmentOffset] == protocol.HashSegment(msg.Payload, int(msg.Length)) {
 			color.Cyan("the hashin do be matchin")
 			d.segments.Store(int(msg.Header.SegmentOffset), Downloaded)
 			go d.checkIfDone()
@@ -162,8 +168,9 @@ func (d *Downloader) await_segment_responses(file protocol.FileMetaData, path_ s
 			writef.Write([]byte(msg.Payload))
 		} else {
 			color.Red("the hashin do NOT be matchin")
-			show := fmt.Sprintf("%d vs %d", file.SegmentHashes[msg.Header.SegmentOffset], protocol.HashSegment(msg.Payload, len(msg.Payload)))
+			show := fmt.Sprintf("%d vs %d", file.SegmentHashes[msg.Header.SegmentOffset], protocol.HashSegment(msg.Payload, int(msg.Length)))
 			color.Red(show)
+			os.Exit(1)
 			d.segments.Store(int(msg.Header.SegmentOffset), Downloaded)
 			go d.checkIfDone()
 			writef.Seek(int64(segmente_offset), 0)
@@ -176,7 +183,7 @@ func (d *Downloader) await_segment_responses(file protocol.FileMetaData, path_ s
 
 func (node *Node) Distribute(device_segments map[protocol.DeviceIdentifier][]protocol.FileSegment, metadata protocol.FileMetaData) map[int64]protocol.DeviceIdentifier {
 	ret := make(map[int64]protocol.DeviceIdentifier)
-	for n := int64(0); n < int64(metadata.Length/protocol.SegmentLength); n++ {
+	for n := int64(0); n < int64(metadata.Length/protocol.SegmentMaxLength); n++ {
 		for device, segments := range device_segments {
 			for _, segment := range segments {
 				if segment.BlockOffset == n {

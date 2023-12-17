@@ -17,11 +17,6 @@ type Header struct {
 func (h *Header) serialize() ([]byte, error) {
 	load127 := h.Load << 1
 	header := [15]byte{}
-	// if h.IsRequest {
-	// 	header[0] = byte(0b0000_0000)
-	// } else {
-	// 	header[0] = byte(0b1111_1111)
-	// }
 	if !h.IsRequest {
 		load127 += 1
 	}
@@ -36,7 +31,7 @@ func (h *Header) serialize() ([]byte, error) {
 	return header[:], nil
 }
 
-func (h *Header) Deserialize(byteArray []byte) error {
+func (h *Header) deserialize(byteArray []byte) error {
 	load127 := uint8(byteArray[0])
 	h.IsRequest = (load127 % 2) == 0
 	h.Load = load127 >> 1
@@ -60,6 +55,7 @@ const PacketSize = 2048
 const HeaderSize = 15
 
 func (m *Message) Serialize() ([]byte, error) {
+	m.Header.Length = uint16(len(m.Payload))
 	header_bytes, err := m.Header.serialize()
 
 	if err != nil {
@@ -69,7 +65,7 @@ func (m *Message) Serialize() ([]byte, error) {
 }
 
 func (m *Message) Deserialize(bytes []byte) error {
-	if err := m.Header.Deserialize(bytes[:HeaderSize]); err != nil {
+	if err := m.Header.deserialize(bytes[:HeaderSize]); err != nil {
 		return err
 	}
 	if len(bytes) > HeaderSize {
@@ -87,7 +83,7 @@ func GimmeFileSegmentRequest(segment protocol.FileSegment, time_stamp uint32) Re
 		FileId:        segment.FileHash,
 		TimeStamp:     time_stamp,
 		SegmentOffset: uint32(segment.BlockOffset),
-		Length:        1,
+		Length:        0,
 	}
 	return Request{Header: header, Payload: nil}
 }

@@ -15,7 +15,7 @@ func HashSegment(buffer []byte, n int) Hash {
 
 func Hashing(file *os.File, file_name string) (*FileMetaData, error) {
 	// Create a buffer to read 128 bytes at a time
-	buffer := make([]byte, SegmentLength)
+	buffer := make([]byte, SegmentMaxLength)
 
 	// Hash the entire file
 	fileHash := crc32.NewIEEE() // Use CRC32 hash

@@ -102,19 +102,19 @@ func getSegment(f_path string, segmentOffset uint32) ([]byte, error) {
 	defer file.Close()
 
 	// Seek to the starting position (byte X)
-	startingByte := segmentOffset * protocol.SegmentLength // Replace with the actual starting byte
+	startingByte := segmentOffset * protocol.SegmentMaxLength // Replace with the actual starting byte
 	_, err = file.Seek(int64(startingByte), 0)
 	if err != nil {
 		return nil, err
 	}
 
 	// Read the desired number of bytes (from byte X to byte Y)
-	buffer := make([]byte, protocol.SegmentLength)
+	buffer := make([]byte, protocol.SegmentMaxLength)
 	// 	_, err = file.Read(buffer)
-	_, err = file.Read(buffer)
+	n, err := file.Read(buffer)
 	if err != nil {
 		return nil, err
 	}
-	return buffer[:], nil
+	return buffer[:n], nil
 	// Print the read bytes
 }

@@ -29,16 +29,17 @@ type FileMetaData struct {
 }
 
 // length of a file segment in bytes
-const SegmentLength = 1024
+const SegmentMaxLength = 1024
 
 type FileSegment struct {
 	BlockOffset int64    `json:"BlockOffset"` //
 	FileHash    FileHash `json:"FileID"`      // Foriegn Key refere um FileMetaData
 	Hash        Hash     `json:"Hash"`
+	// Length      uint16   `json:"Length"` //
 }
 
 func (s FileSegment) LastByte() int64 {
-	return (s.BlockOffset+1)*SegmentLength - 1
+	return (s.BlockOffset+1)*SegmentMaxLength - 1
 }
 
 func HashDeviceIdentifier(id DeviceIdentifier) uint64 {

@@ -35,10 +35,9 @@ func (m *StateManager) LeaveNetwork(device protocol.DeviceIdentifier) error {
 	m.State.Registered_nodes.RemoveIf(f)
 	// segments_nodes := m.SegmentsNodes()
 	delete(m.State.Nodes_segments, device)
-	
+
 	return nil
 }
-
 
 func (m *StateManager) RegisterFile(device protocol.DeviceIdentifier, file_info protocol.FileMetaData) error {
 	if m.FileIsRegistered(file_info.Hash) {
@@ -71,7 +70,7 @@ func (m *StateManager) RegisterFileSegment(device protocol.DeviceIdentifier, fil
 	if !ok {
 		return ErrFileDoesNotExist
 	}
-	offset := file_segment.BlockOffset / protocol.SegmentLength
+	offset := file_segment.BlockOffset / protocol.SegmentMaxLength
 	if x.SegmentHashes[offset] != file_segment.Hash {
 		return ErrInvalidSegmentHash
 	}
