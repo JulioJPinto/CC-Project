@@ -54,7 +54,7 @@ func NewDownloader(node *Node, file protocol.FileHash) *Downloader {
 }
 func (d *Downloader) Start() error {
 	channel := make(chan p2p.Message)
-	d.node.Chanels.Store(d.file, channel)
+	d.node.Downloads.Store(d.file, d)
 	color.Green("created channel for " + fmt.Sprintf("%d", d.file))
 	file_meta_data, ok := d.node.KnownFiles[d.file] // file_meta_data,ok := c.KnownFiles.get(d.file)
 
@@ -99,17 +99,18 @@ func (d *Downloader) Start() error {
 	go d.await_segment_responses(file_meta_data, path)
 	d.send_segment_requests()
 	close(channel)
-	d.node.Chanels.Delete(d.file)
 	return nil
 }
 func (node *Node) DownloadFile(file_hash protocol.FileHash) error {
 	color.Green("DOWNLOADIN " + fmt.Sprintf("%d", file_hash))
 
-	if _, ok := node.Chanels.Load(file_hash); ok {
+	if _, ok := node.Downloads.Load(file_hash); ok {
 		return fmt.Errorf("download already in progress")
 	}
 	downloader := NewDownloader(node, file_hash)
-	return downloader.Start()
+	err := downloader.Start()
+	node.Downloads.Delete(file_hash)
+	return err
 }
 
 func (d *Downloader) send_segment_requests() {
@@ -149,10 +150,8 @@ func (d *Downloader) await_segment_responses(file protocol.FileMetaData, path_ s
 	if err != nil {
 		return
 	}
-	ch_, _ := d.node.Chanels.Load(file.Hash)
-	ch := ch_.(chan p2p.Message)
-
-	for msg := range ch {
+	
+	for msg := range d.channel {
 		// show := fmt.Sprint("\nrecieved: ", string(msg.Payload))
 		// color.Cyan(show)
 		segmente_offset := msg.Header.SegmentOffset * protocol.SegmentMaxLength

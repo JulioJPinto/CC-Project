@@ -1,12 +1,14 @@
 package lib
 
 import (
+	"cc_project/helpers"
 	"cc_project/protocol"
 	"cc_project/protocol/p2p"
 	"encoding/json"
 	"fmt"
 	"net"
 	"os"
+	"time"
 
 	"github.com/fatih/color"
 )
@@ -49,17 +51,18 @@ func (node *Node) handleUDPMessage(addr *net.UDPAddr, packet []byte) error {
 		color.Green(string(s))
 		go node.HandleP2PRequest(addr, message)
 	} else {
-		color.Green("itssa responsss")
+		now := helpers.TrunkI64(time.Now().UnixMilli())
+		s := fmt.Sprintf("responded in %d miliseconds", now-int32(message.TimeStamp))
+		color.Green(s)
 
 		hash := message.FileId
-		queue_, ok := node.Chanels.Load(hash)
-		queue, ok2 := queue_.(chan p2p.Message)
-		if !ok && ok2 {
+		downloader, ok := node.Downloads.Load(hash)
+		if !ok {
 			color.Red("channel dont exist")
 			// fmt.Println(node.Chanels.())
 			return nil
 		}
-		queue <- message
+		downloader.ForwardMessage(message)
 	}
 	return nil
 }
@@ -87,7 +90,7 @@ func (node *Node) HandleP2PRequest(addr *net.UDPAddr, msg p2p.Message) {
 		return
 	}
 	addr.Port = 9090
-	ret_msg := p2p.GivYouFileSegmentResponse(f, segment, 0)
+	ret_msg := p2p.GivYouFileSegmentResponse(f, segment, msg.TimeStamp)
 	m := p2p.Message(ret_msg)
 	bytes, _ := m.Serialize()
 	color.Cyan(string(ret_msg.Payload))
@@ -101,16 +104,13 @@ func getSegment(f_path string, segmentOffset uint32) ([]byte, error) {
 	}
 	defer file.Close()
 
-	// Seek to the starting position (byte X)
 	startingByte := segmentOffset * protocol.SegmentMaxLength // Replace with the actual starting byte
 	_, err = file.Seek(int64(startingByte), 0)
 	if err != nil {
 		return nil, err
 	}
 
-	// Read the desired number of bytes (from byte X to byte Y)
 	buffer := make([]byte, protocol.SegmentMaxLength)
-	// 	_, err = file.Read(buffer)
 	n, err := file.Read(buffer)
 	if err != nil {
 		return nil, err

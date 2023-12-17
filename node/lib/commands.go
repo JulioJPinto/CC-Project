@@ -165,7 +165,7 @@ func (node *Node) Download(args []string) helpers.StatusMessage {
 	if _, ok := node.MyFiles[file_hash]; ok {
 		f_name := node.MyFiles[file_hash]
 		ret.AddMessage(nil, "already have"+f_name)
-	} else if _, ok := node.Chanels.Load(file_hash); ok {
+	} else if _, ok := node.Downloads.Load(file_hash); ok {
 		ret.AddError(fmt.Errorf("download already in progress"))
 	} else {
 		color.Green("downloading " + fmt.Sprintf("%d", file_hash))
