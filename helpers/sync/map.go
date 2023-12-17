@@ -13,6 +13,18 @@ func (m *Map[K, V]) Load(key K) (value V, ok bool) {
 	return value, ok
 }
 
+func (m *Map[K, V]) ToMap() map[K]V {
+	result := make(map[K]V)
+
+	// Iterate over the internal sync.Map and copy elements to the map
+	m.internalMap.Range(func(key, value interface{}) bool {
+		result[key.(K)] = value.(V)
+		return true
+	})
+
+	return result
+}
+
 func (m *Map[K, V]) Store(key K, value V) {
 	m.internalMap.Store(key, value)
 }

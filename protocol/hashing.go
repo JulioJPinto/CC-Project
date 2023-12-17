@@ -13,7 +13,7 @@ func HashSegment(buffer []byte, n int) Hash {
 	return Hash(hasher.Sum32()) // Convert to the Hash type
 }
 
-func Hashing(file *os.File, file_name string) (*FileMetaData, error) {
+func HashFile(file *os.File, file_name string) (*FileMetaData, error) {
 	// Create a buffer to read 128 bytes at a time
 	buffer := make([]byte, SegmentMaxLength)
 

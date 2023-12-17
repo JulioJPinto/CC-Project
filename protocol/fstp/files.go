@@ -17,5 +17,5 @@ func HashFile(path string) (*protocol.FileMetaData, error) {
 
 	file_name := filepath.Base(path)
 
-	return protocol.Hashing(file, file_name)
+	return protocol.HashFile(file, file_name)
 }

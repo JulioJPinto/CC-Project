@@ -2,32 +2,34 @@ package state_manager
 
 import (
 	"cc_project/helpers"
+	helpers_sync "cc_project/helpers/sync"
 	"cc_project/protocol"
 	"encoding/json"
 )
 
 type State struct {
-	Registered_nodes *helpers.Set[protocol.Device]                        `json:"registered_nodes"`
-	Registered_files map[protocol.FileHash]protocol.FileMetaData          `json:"registered_files"` // mapeia a hash do ficheiro para os dados
-	Nodes_segments   map[protocol.DeviceIdentifier][]protocol.FileSegment `json:"nodes_segments"`   // mapeia o
+	RegisteredNodes  *helpers_sync.Set[protocol.Device]                                   `json:"registered_nodes"`
+	Registered_files *helpers_sync.Map[protocol.FileHash, protocol.FileMetaData]          `json:"registered_files"` // mapeia a hash do ficheiro para os dados
+	Nodes_segments   *helpers_sync.Map[protocol.DeviceIdentifier, []protocol.FileSegment] `json:"nodes_segments"`   // mapeia o
 }
 
 func newState() *State {
 	s := &State{}
-	s.Registered_nodes = helpers.NewSet[protocol.Device]()
-	s.Registered_files = make(map[protocol.FileHash]protocol.FileMetaData)
-	s.Nodes_segments = make(map[protocol.DeviceIdentifier][]protocol.FileSegment)
+	s.RegisteredNodes = &helpers_sync.Set[protocol.Device]{}
+	s.Registered_files = &helpers_sync.Map[protocol.FileHash, protocol.FileMetaData]{}
+	s.Nodes_segments = &helpers_sync.Map[protocol.DeviceIdentifier, []protocol.FileSegment]{}
 	return s
 }
 
 func (s *State) SegmentsNodes() map[protocol.FileSegment][]protocol.DeviceIdentifier {
 	invertedMap := make(map[protocol.FileSegment][]protocol.DeviceIdentifier)
 
-	for deviceID, fileSegments := range s.Nodes_segments {
+	s.Nodes_segments.Range(func(deviceID protocol.DeviceIdentifier, fileSegments []protocol.FileSegment) bool {
 		for _, fileSegment := range fileSegments {
 			invertedMap[fileSegment] = append(invertedMap[fileSegment], deviceID)
 		}
-	}
+		return true
+	})
 
 	return invertedMap
 }
