@@ -1,8 +1,5 @@
 package protocol
 
-import (
-	"cc_project/helpers"
-)
 
 type Device struct {
 	IP string `json:"IP"`
@@ -40,12 +37,4 @@ type FileSegment struct {
 
 func (s FileSegment) LastByte() int64 {
 	return (s.BlockOffset+1)*SegmentMaxLength - 1
-}
-
-func HashDeviceIdentifier(id DeviceIdentifier) uint64 {
-	return helpers.HashString(string(id))
-}
-
-func HashFileHash(id FileHash) uint64 {
-	return helpers.HashUint32(uint32(id))
 }

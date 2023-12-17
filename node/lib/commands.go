@@ -189,3 +189,16 @@ func (client *Node) Test(args []string) helpers.StatusMessage {
 	// client.RequestSegment("");
 	return msg
 }
+
+func (node *Node) Stats() helpers.StatusMessage {
+	ret := helpers.StatusMessage{}
+
+	// Assuming Stats is a Map[protocol.DeviceIdentifier, *PeerStats]
+	node.PeerStats.Range(func(deviceID protocol.DeviceIdentifier, stats *PeerStats) bool {
+		// Add a message for each entry in the Stats map
+		ret.AddMessage(nil, fmt.Sprintf("%s: %s", deviceID, stats.String()))
+		return true
+	})
+
+	return ret
+}

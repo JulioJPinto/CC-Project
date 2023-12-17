@@ -52,6 +52,7 @@ func (node *Node) handleUDPMessage(addr *net.UDPAddr, packet []byte) error {
 		go node.HandleP2PRequest(addr, message)
 	} else {
 		now := helpers.TrunkI64(time.Now().UnixMilli())
+		delay := now - int32(message.TimeStamp)
 		s := fmt.Sprintf("responded in %d miliseconds", now-int32(message.TimeStamp))
 		color.Green(s)
 
@@ -62,6 +63,14 @@ func (node *Node) handleUDPMessage(addr *net.UDPAddr, packet []byte) error {
 			// fmt.Println(node.Chanels.())
 			return nil
 		}
+		peer := protocol.DeviceIdentifier(addr.IP.String())
+		stats, ok := node.PeerStats.Load(peer)
+		if !ok {
+			stats = &PeerStats{}
+		}
+		stats.P2P_RTT = uint32(delay)
+		stats.NPackets++
+		node.PeerStats.Store(peer, stats)
 		downloader.ForwardMessage(message)
 	}
 	return nil
