@@ -1,6 +1,7 @@
 package fstp
 
 import (
+	"encoding/json"
 	"fmt"
 	"net"
 
@@ -64,11 +65,11 @@ func (client *Client) Request(request Request) (*Response, error) {
 	}
 	resp_msg := &Message{}
 	resp_msg.Deserialize(recieved_data)
-
+	x, _ := json.Marshal(resp_msg.Payload)
+	color.Cyan("just recieved this bitx: ", string(x))
 	resp := Response(*resp_msg)
 	return &resp, nil
 }
-
 
 func IHaveFileRequest(props IHaveFileReqProps) Request {
 	header := Header{

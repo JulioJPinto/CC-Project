@@ -6,6 +6,7 @@ import (
 	"cc_project/protocol"
 	"cc_project/protocol/fstp"
 	"cc_project/tracker/state_manager"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net"
@@ -42,7 +43,9 @@ func (s *handler) HandleRequest(conn net.Conn, req fstp.Request) fstp.Response {
 			return fstp.Response(fstp.Response{Header: fstp.Header{Flags: fstp.ErrResp}, Payload: nil})
 		}
 	case fstp.AllFilesReq:
-		return fstp.NewAllFilesResponse((s_manager.GetAllFiles()))
+		allf := (s_manager.GetAllFiles())
+		x,_ := json.Marshal(allf)
+		return fstp.NewAllFilesResponse(x)
 	case fstp.WhoHasReq:
 		color.Cyan("\n\nWho has request\n\n")
 		req, ok := req.Payload.(*fstp.WhoHasReqProps)

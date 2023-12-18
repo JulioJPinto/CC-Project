@@ -106,11 +106,13 @@ func (node *Node) FetchFiles(_ []string) helpers.StatusMessage {
 		ret.AddError(err)
 		return ret
 	}
-	
+
 	all_files, ok := resp.Payload.(*fstp.AllFilesRespProps)
 	println("type ", reflect.TypeOf(resp.Payload).String())
-	af := map[protocol.FileHash]protocol.FileMetaData(*all_files)
-	fmt.Println("ALL FILES", af)
+	X := map[protocol.FileHash]protocol.FileMetaData{}
+	json.Unmarshal(*all_files, &X)
+	// af := map[protocol.FileHash]protocol.FileMetaData(X)
+	fmt.Println("ALL FILES", X)
 	x, _ := json.Marshal(all_files)
 	fmt.Println(string(x))
 
@@ -118,8 +120,9 @@ func (node *Node) FetchFiles(_ []string) helpers.StatusMessage {
 		ret.AddError(fmt.Errorf("invalid payload type: %v", resp.Payload))
 		return ret
 	}
-	node.KnownFiles = helpers_sync.FromMap(af)
-	keys := helpers.MapKeys[protocol.FileHash](af)
+	node.KnownFiles = helpers_sync.FromMap(X)
+	keys := helpers.MapKeys[protocol.FileHash](X)
+	all_files = nil
 	ret.AddMessage(nil, fmt.Sprint("fetched", keys))
 	return ret
 }

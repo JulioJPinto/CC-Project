@@ -1,8 +1,10 @@
 package fstp
 
 import (
+	"bytes"
 	"cc_project/protocol"
 	"encoding/binary"
+	"encoding/gob"
 	"encoding/json"
 	"fmt"
 	"unsafe"
@@ -62,11 +64,11 @@ func NewOkResponse() Response {
 	return Response{Header{OKResp}, nil}
 }
 
-type AllFilesRespProps  map[protocol.FileHash]protocol.FileMetaData 
-
+type AllFilesRespProps []byte // map[protocol.FileHash]protocol.FileMetaData
 
 func NewAllFilesResponse(files AllFilesRespProps) Response {
-
+	x, _ := json.Marshal(files)
+	fmt.Println("IMA BOUTA GIVE THIS MF", string(x))
 	props := AllFilesRespProps(files)
 	return Response{Header{Flags: AllFilesResp}, props}
 }
@@ -101,7 +103,14 @@ func (message *Message) Serialize() ([]byte, error) {
 		return []byte{tag, 0, 0, 0, 0}, nil
 	}
 	payload, _ := json.Marshal(message.Payload) // WARN!!! ignoring serialization errors like a chad
-	payload_size := uint32(len(payload))        // Mudar o tamanho do int se necessário, improvável af tho (*)
+	var buffer bytes.Buffer
+	encoder := gob.NewEncoder(&buffer)
+	if err := encoder.Encode(message.Payload); err != nil {
+		return nil, err
+	}
+	payload = buffer.Bytes()
+
+	payload_size := uint32(len(payload)) // Mudar o tamanho do int se necessário, improvável af tho (*)
 	serialized_payload_size := make([]byte, unsafe.Sizeof(payload_size))
 	binary.LittleEndian.PutUint32(serialized_payload_size, payload_size) // (*) aqui também
 	ret := append(append([]byte{tag}, serialized_payload_size...), payload...)
@@ -128,6 +137,9 @@ func (message *Message) Deserialize(byteArray []byte) error {
 	}
 	// err = payload.Deserialize(byteArray[FSTPHEaderSize:])
 	err = json.Unmarshal(byteArray[HeaderSize:], payload)
+	buffer := bytes.NewBuffer(byteArray[HeaderSize:])
+	decoder := gob.NewDecoder(buffer)
+	decoder.Decode(payload)
 	message.Payload = payload
 	return err
 }
