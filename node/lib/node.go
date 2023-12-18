@@ -19,8 +19,7 @@ type Node struct {
 	KnownFiles *helpers_sync.Map[protocol.FileHash,protocol.FileMetaData]
 }
 
-func NewNode(fstp_config fstp.Config, p2p_config p2p.Config,debugging bool) (*Node, error) {
-
+func NewNode(fstp_config fstp.Config, p2p_config p2p.Config, debugging bool) (*Node, error) {
 	client := &Node{}
 	client.MyFiles = make(map[protocol.FileHash]string)
 	client.KnownFiles = &helpers_sync.Map[protocol.FileHash,protocol.FileMetaData]{}
