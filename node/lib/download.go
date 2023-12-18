@@ -51,6 +51,7 @@ func NewDownloader(node *Node, file protocol.FileHash) *Downloader {
 		whoHas:   nil,
 	}
 }
+
 func (d *Downloader) Start() error {
 	channel := make(chan p2p.Message)
 	d.node.Downloads.Store(d.file, d)
@@ -100,6 +101,7 @@ func (d *Downloader) Start() error {
 	close(channel)
 	return nil
 }
+
 func (node *Node) DownloadFile(file_hash protocol.FileHash) error {
 	color.Green("DOWNLOADIN " + fmt.Sprintf("%d", file_hash))
 
@@ -131,6 +133,7 @@ func (d *Downloader) send_segment_requests() {
 		}
 	}
 }
+
 func (d *Downloader) checkIfDone() {
 	done := d.segments.Fold(true, func(a any, k int, v Status) any {
 		return a == true && v == Downloaded
@@ -140,6 +143,7 @@ func (d *Downloader) checkIfDone() {
 	}
 
 }
+
 func (d *Downloader) await_segment_responses(file protocol.FileMetaData, path_ string) {
 	store_path := path.Join(path_, file.Name)
 	writef, err := os.Create(store_path)

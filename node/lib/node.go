@@ -20,7 +20,6 @@ type Node struct {
 }
 
 func NewNode(fstp_config fstp.Config, p2p_config p2p.Config) (*Node, error) {
-
 	client := &Node{}
 	client.MyFiles = make(map[protocol.FileHash]string)
 	client.KnownFiles = make(map[protocol.FileHash]protocol.FileMetaData)
