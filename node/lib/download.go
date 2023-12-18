@@ -56,11 +56,11 @@ func (d *Downloader) Start() error {
 	channel := make(chan p2p.Message)
 	d.node.Downloads.Store(d.file, d)
 	color.Green("created channel for " + fmt.Sprintf("%d", d.file))
-	file_meta_data, ok := d.node.KnownFiles[d.file] // file_meta_data,ok := c.KnownFiles.get(d.file)
+	file_meta_data, ok := d.node.KnownFiles.Load(d.file) // file_meta_data,ok := c.KnownFiles.get(d.file)
 
 	if !ok {
 		d.node.FetchFiles(nil)
-		file_meta_data, ok = d.node.KnownFiles[d.file]
+		file_meta_data, ok = d.node.KnownFiles.Load(d.file)
 		if !ok {
 			return fmt.Errorf("files does not exist: %v", d.file)
 		}
@@ -71,6 +71,8 @@ func (d *Downloader) Start() error {
 		return err
 	}
 	pay, ok := resp.Payload.(*fstp.WhoHasRespProps)
+	x, _ := json.Marshal(pay)
+	println(string(x))
 	if !ok {
 		return fmt.Errorf("invalid payload")
 	}

@@ -62,12 +62,10 @@ func NewOkResponse() Response {
 	return Response{Header{OKResp}, nil}
 }
 
-type AllFilesRespProps struct {
-	Files map[protocol.FileHash]protocol.FileMetaData `json:"Files"`
-}
+type AllFilesRespProps map[protocol.FileHash]protocol.FileMetaData
 
-func NewAllFilesResponse(files map[protocol.FileHash]protocol.FileMetaData) Response {
-	props := AllFilesRespProps{Files: files}
+func NewAllFilesResponse(files AllFilesRespProps) Response {
+	props := AllFilesRespProps(files)
 	return Response{Header{Flags: AllFilesResp}, props}
 }
 
@@ -100,34 +98,57 @@ func (message *Message) Serialize() ([]byte, error) {
 	if message.Payload == nil {
 		return []byte{tag, 0, 0, 0, 0}, nil
 	}
-	payload, _ := json.Marshal(message.Payload) // WARN!!! ignoring serialization errors like a chad
-	payload_size := uint32(len(payload))        // Mudar o tamanho do int se necessário, improvável af tho (*)
+	payload, _ := json.Marshal(message.Payload) 
+	payload_size := uint32(len(payload)) 
 	serialized_payload_size := make([]byte, unsafe.Sizeof(payload_size))
-	binary.LittleEndian.PutUint32(serialized_payload_size, payload_size) // (*) aqui também
+	binary.LittleEndian.PutUint32(serialized_payload_size, payload_size)
 	ret := append(append([]byte{tag}, serialized_payload_size...), payload...)
 	return ret, nil
 
 }
 
-var tag_struct_map = map[int]any{
-	IHaveFileReq: &IHaveFileReqProps{},
-	WhoHasReq:    &WhoHasReqProps{},
-	WhoHasResp:   &WhoHasRespProps{},
-	AllFilesReq:  nil,
-	AllFilesResp: &AllFilesRespProps{},
-	OKResp:       nil,
-	ErrResp:      &ErrorResponse{},
+func empty_payload(f int) (any,bool) {
+	switch f {
+
+	case IHaveFileReq:
+		{
+			return &IHaveFileReqProps{},true
+		}
+	case WhoHasReq:
+		{
+			return &WhoHasReqProps{},true
+		}
+	case WhoHasResp:
+		{
+			return &WhoHasRespProps{},true
+		}
+	case AllFilesReq:
+		{
+			return &struct{}{},true
+		}
+	case AllFilesResp:
+		{
+			return &AllFilesRespProps{},true
+		}
+	case OKResp:
+		{
+			return &struct{}{},true
+		}
+	case ErrResp:
+		{
+			return &ErrorResponse{},true
+		}
+	}
+	return nil,false
 }
 
 func (message *Message) Deserialize(byteArray []byte) error {
 	message.Header.Flags = MessageType(byteArray)
 	var err error = nil
-	var payload any // json serializable
-	payload, ok := tag_struct_map[int(message.Header.Flags)]
+	payload,ok := empty_payload(int(message.Header.Flags))
 	if !ok {
 		return fmt.Errorf("invalid header type: %v", message.Header.Flags)
 	}
-	// err = payload.Deserialize(byteArray[FSTPHEaderSize:])
 	err = json.Unmarshal(byteArray[HeaderSize:], payload)
 	message.Payload = payload
 	return err
