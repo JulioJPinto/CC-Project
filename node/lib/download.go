@@ -25,21 +25,26 @@ const (
 	Pending    = 1 // pending for n iterations
 )
 
+type AddrMessage struct {
+	msg p2p.Message
+	peer protocol.DeviceIdentifier
+}
+
 type Downloader struct {
 	node     *Node
 	file     protocol.FileHash
-	channel  chan p2p.Message
+	channel  chan AddrMessage
 	segments *sync.Map[int, Status]
 	done     *sync.Flag
 	whoHas   map[protocol.DeviceIdentifier][]protocol.FileSegment
 }
 
-func (d *Downloader) ForwardMessage(msg p2p.Message) {
-	d.channel <- msg
+func (d *Downloader) ForwardMessage(msg p2p.Message, peer protocol.DeviceIdentifier) {
+	d.channel <- AddrMessage{msg: msg, peer: peer}
 }
 
 func NewDownloader(node *Node, file protocol.FileHash) *Downloader {
-	channel := make(chan p2p.Message)
+	channel := make(chan AddrMessage)
 	done := sync.Flag{}
 	done.Unset()
 	return &Downloader{
@@ -153,24 +158,24 @@ func (d *Downloader) await_segment_responses(file protocol.FileMetaData, path_ s
 		return
 	}
 
-	for msg := range d.channel {
-		segmente_offset := msg.Header.SegmentOffset * protocol.SegmentMaxLength
-		headerJSON, _ := json.MarshalIndent(msg.Header, "", "  ")
+	for addrmsg := range d.channel {
+		segmente_offset := addrmsg.msg.Header.SegmentOffset * protocol.SegmentMaxLength
+		headerJSON, _ := json.MarshalIndent(addrmsg.msg.Header, "", "  ")
 		fmt.Println(string(headerJSON))
 
-		if file.SegmentHashes[msg.Header.SegmentOffset] == protocol.HashSegment(msg.Payload, int(msg.Length)) {
-			d.segments.Store(int(msg.Header.SegmentOffset), Downloaded)
+		if file.SegmentHashes[addrmsg.msg.Header.SegmentOffset] == protocol.HashSegment(addrmsg.msg.Payload, int(addrmsg.msg.Length)) {
+			d.segments.Store(int(addrmsg.msg.Header.SegmentOffset), Downloaded)
 			go d.checkIfDone()
 			writef.Seek(int64(segmente_offset), 0)
-			writef.Write([]byte(msg.Payload))
+			writef.Write([]byte(addrmsg.msg.Payload))
 		} else {
 			color.Red("the hashin do NOT be matchin")
-			show := fmt.Sprintf("%d vs %d", file.SegmentHashes[msg.Header.SegmentOffset], protocol.HashSegment(msg.Payload, int(msg.Length)))
+			show := fmt.Sprintf("%d vs %d", file.SegmentHashes[addrmsg.msg.Header.SegmentOffset], protocol.HashSegment(addrmsg.msg.Payload, int(addrmsg.msg.Length)))
 			color.Red(show)
 			// d.node.PeerStats()
 			go d.checkIfDone()
 			writef.Seek(int64(segmente_offset), 0)
-			writef.Write([]byte(msg.Payload))
+			writef.Write([]byte(addrmsg.msg.Payload))
 
 		}
 		// writef.Seek(int64(segmente_offset), 0)

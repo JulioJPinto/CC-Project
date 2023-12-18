@@ -71,7 +71,7 @@ func (node *Node) handleUDPMessage(addr *net.UDPAddr, packet []byte) error {
 		stats.P2P_RTT = uint32(delay)
 		stats.NPackets++
 		node.PeerStats.Store(peer, stats)
-		downloader.ForwardMessage(message)
+		downloader.ForwardMessage(message, peer)
 	}
 	return nil
 }

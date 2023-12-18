@@ -17,15 +17,13 @@ func (p PeerStats) String() string {
 }
 
 func PeerWeight(stats PeerStats) float64 {
-	ipRTTWeight := 0.2
-	p2pRTTWeight := 0.2
-	loadWeight := 0.2
-	nPacketsWeight := 0.2
-	nDroppedPacketsWeight := 0.2
+	ipRTTWeight := 0.25
+	p2pRTTWeight := 0.25
+	nPacketsWeight := 0.25
+	nDroppedPacketsWeight := 0.25
 
 	return ((float64(stats.IP_RTT) * ipRTTWeight) + 
 			(float64(stats.P2P_RTT) * p2pRTTWeight) + 
-			(float64(stats.Load) * loadWeight) + 
 			(float64(stats.NPackets) * nPacketsWeight) + 
 			(float64(stats.NDroppedPackets) * nDroppedPacketsWeight))
 }
