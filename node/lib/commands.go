@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"reflect"
 	"strconv"
 
 	"github.com/fatih/color"
@@ -108,20 +107,13 @@ func (node *Node) FetchFiles(_ []string) helpers.StatusMessage {
 	}
 
 	all_files, ok := resp.Payload.(*fstp.AllFilesRespProps)
-	println("type ", reflect.TypeOf(resp.Payload).String())
-	X := map[protocol.FileHash]protocol.FileMetaData{}
-	json.Unmarshal(*all_files, &X)
-	// af := map[protocol.FileHash]protocol.FileMetaData(X)
-	fmt.Println("ALL FILES", X)
-	x, _ := json.Marshal(all_files)
-	fmt.Println(string(x))
 
 	if !ok {
 		ret.AddError(fmt.Errorf("invalid payload type: %v", resp.Payload))
 		return ret
 	}
-	node.KnownFiles = helpers_sync.FromMap(X)
-	keys := helpers.MapKeys[protocol.FileHash](X)
+	node.KnownFiles = helpers_sync.FromMap(*all_files)
+	keys := helpers.MapKeys[protocol.FileHash](*all_files)
 	all_files = nil
 	ret.AddMessage(nil, fmt.Sprint("fetched", keys))
 	return ret

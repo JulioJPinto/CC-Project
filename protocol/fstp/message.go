@@ -6,7 +6,6 @@ import (
 	"encoding/binary"
 	"encoding/gob"
 	"encoding/json"
-	"fmt"
 	"unsafe"
 )
 
@@ -64,11 +63,9 @@ func NewOkResponse() Response {
 	return Response{Header{OKResp}, nil}
 }
 
-type AllFilesRespProps []byte // map[protocol.FileHash]protocol.FileMetaData
+type AllFilesRespProps map[protocol.FileHash]protocol.FileMetaData
 
 func NewAllFilesResponse(files AllFilesRespProps) Response {
-	x, _ := json.Marshal(files)
-	fmt.Println("IMA BOUTA GIVE THIS MF", string(x))
 	props := AllFilesRespProps(files)
 	return Response{Header{Flags: AllFilesResp}, props}
 }
@@ -122,19 +119,55 @@ var tag_struct_map = map[int]any{
 	IHaveFileReq: &IHaveFileReqProps{},
 	WhoHasReq:    &WhoHasReqProps{},
 	WhoHasResp:   &WhoHasRespProps{},
-	AllFilesReq:  nil,
+	AllFilesReq:  &struct{}{},
 	AllFilesResp: &AllFilesRespProps{},
-	OKResp:       nil,
+	OKResp:       &struct{}{},
 	ErrResp:      &ErrorResponse{},
+}
+
+func empty_payload(f int) any {
+	switch f {
+
+	case IHaveFileReq:
+		{
+			return &IHaveFileReqProps{}
+		}
+	case WhoHasReq:
+		{
+			return &WhoHasReqProps{}
+		}
+	case WhoHasResp:
+		{
+			return &WhoHasRespProps{}
+		}
+	case AllFilesReq:
+		{
+			return &struct{}{}
+		}
+	case AllFilesResp:
+		{
+			return &AllFilesRespProps{}
+		}
+	case OKResp:
+		{
+			return &struct{}{}
+		}
+	case ErrResp:
+		{
+			return &ErrorResponse{}
+		}
+	}
+	return nil
 }
 
 func (message *Message) Deserialize(byteArray []byte) error {
 	message.Header.Flags = MessageType(byteArray)
 	var err error = nil
-	payload, ok := tag_struct_map[int(message.Header.Flags)]
-	if !ok {
-		return fmt.Errorf("invalid header type: %v", message.Header.Flags)
-	}
+	// payload, ok := tag_struct_map[int(message.Header.Flags)]
+	payload := empty_payload(int(message.Header.Flags))
+	// if !ok {
+	// 	return fmt.Errorf("invalid header type: %v", message.Header.Flags)
+	// }
 	// err = payload.Deserialize(byteArray[FSTPHEaderSize:])
 	err = json.Unmarshal(byteArray[HeaderSize:], payload)
 	buffer := bytes.NewBuffer(byteArray[HeaderSize:])
