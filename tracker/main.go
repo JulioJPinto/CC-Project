@@ -75,12 +75,14 @@ func (s *handler) HandleIHaveFileRequest(device protocol.DeviceIdentifier, req *
 	return fstp.NewOkResponse()
 }
 
-var commands = map[string]func(any, []string) helpers.StatusMessage{
-	"shutdown": func(g any, a []string) helpers.StatusMessage { return shutdown() },
+var commands = map[string]func(*state_manager.StateManager, []string) helpers.StatusMessage{
+	"shutdown": func(g *state_manager.StateManager, a []string) helpers.StatusMessage { return shutdown() },
+	"files":    func(g *state_manager.StateManager, a []string) helpers.StatusMessage { return g.Files() },
 }
 
 func shutdown() helpers.StatusMessage {
-	log.Fatal("sutdown")
+	fmt.Println("would be a good time to save state to disk")
+	log.Fatal("shuting down ...")
 	return helpers.NewStatusMessage()
 }
 func main() {
@@ -92,5 +94,5 @@ func main() {
 	server := fstp.NewServer(&config, &my_handler)
 	go server.Run()
 	reader := bufio.NewReader(os.Stdin)
-	helpers.TUI[any](reader, nil, commands)
+	helpers.TUI[*state_manager.StateManager](reader, s_manager, commands)
 }

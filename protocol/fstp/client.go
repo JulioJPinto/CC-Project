@@ -12,7 +12,7 @@ type Client struct {
 	UDP_PORT int
 }
 
-const debugging = false
+const debugging = true
 const DefaultUDPPort = 9090
 
 func NewClient(config Config) (*Client, error) {

@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 	"net"
+
+	"github.com/fatih/color"
 )
 
 // fstp_routine ...
@@ -97,6 +99,10 @@ func (instance *fstp_routine) handleClient() {
 			fmt.Println("Error serializing:", err)
 			return
 		}
+
+		str := fmt.Sprint("\nAKA: \n\t<", HeaderType(int(response[0])), ">\n\tPayload: ", string(response[HeaderSize:]))
+		color.Blue(str)
+
 		_, err = instance.conn.Write(response)
 		if err != nil {
 			fmt.Println("Error writing:", err)

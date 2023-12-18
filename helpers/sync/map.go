@@ -2,9 +2,10 @@ package sync
 
 import "sync"
 
-type Map[K comparable,V any] struct {
+type Map[K comparable, V any] struct {
 	internalMap sync.Map
 }
+
 func (m *Map[K, V]) Load(key K) (value V, ok bool) {
 	result, ok := m.internalMap.Load(key)
 	if ok {
@@ -23,6 +24,17 @@ func (m *Map[K, V]) ToMap() map[K]V {
 	})
 
 	return result
+}
+
+func FromMap[K comparable, V any](inputMap map[K]V) *Map[K, V] {
+	myMap := &Map[K, V]{}
+
+	// Copy values from the input map to the internal sync.Map
+	for key, value := range inputMap {
+		myMap.internalMap.Store(key, value)
+	}
+
+	return myMap
 }
 
 func (m *Map[K, V]) Store(key K, value V) {

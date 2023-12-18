@@ -122,7 +122,6 @@ var tag_struct_map = map[int]any{
 func (message *Message) Deserialize(byteArray []byte) error {
 	message.Header.Flags = MessageType(byteArray)
 	var err error = nil
-	var payload any // json serializable
 	payload, ok := tag_struct_map[int(message.Header.Flags)]
 	if !ok {
 		return fmt.Errorf("invalid header type: %v", message.Header.Flags)
