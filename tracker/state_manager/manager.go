@@ -34,19 +34,21 @@ func (m *StateManager) DeviceIsRegistered(deviceID protocol.DeviceIdentifier) bo
 }
 
 func (m *StateManager) LeaveNetwork(device protocol.DeviceIdentifier) error {
+	m.State.Print()
 	f := func(d protocol.Device) bool { return d.GetIdentifier() == device }
 	m.State.RegisteredNodes.RemoveIf(f)
 	m.State.NodesSegments.Delete(device)
 	exsiting_segments := helpers.MapKeys(m.SegmentsNodes())
-	purge := func(key protocol.FileHash, val protocol.FileMetaData) bool {
+	m.State.Print()
+
+	m.State.RegisteredFiles.Range(func(key protocol.FileHash, val protocol.FileMetaData) bool {
 		segments := helpers.NewSetFromSlice[protocol.FileSegment](val.FileSegments())
 		if !segments.IsSubset(exsiting_segments) {
 			color.Red("DELETING", key)
 			m.State.RegisteredFiles.Delete(key)
 		}
 		return true
-	}
-	m.State.RegisteredFiles.Range(purge)
+	})
 	return nil
 }
 
@@ -101,7 +103,7 @@ func (m *StateManager) BatchRegisterFileSegments(device protocol.DeviceIdentifie
 }
 
 func (m *StateManager) GetAllFiles() map[protocol.FileHash]protocol.FileMetaData {
-	
+
 	return m.State.RegisteredFiles.ToMap()
 }
 

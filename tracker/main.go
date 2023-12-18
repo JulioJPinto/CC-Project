@@ -17,14 +17,16 @@ import (
 type handler struct{}
 
 var s_manager *state_manager.StateManager
+var debug bool = false
 
 // handleRequest(FSTPrequest) FSTPresponse
 func (s *handler) HandleRequest(conn net.Conn, req fstp.Request) fstp.Response {
-
-	color.Blue("Handling request")
-	str := fmt.Sprint("\theader: ", fstp.HeaderType(int(req.Header.Flags)), "\n\tdeserialized payload: ", req.Payload, "\n\tfrom: ", conn.RemoteAddr())
-	color.Blue(str)
-	fmt.Println()
+	if debug {
+		color.Blue("Handling request")
+		str := fmt.Sprint("\theader: ", fstp.HeaderType(int(req.Header.Flags)), "\n\tdeserialized payload: ", req.Payload, "\n\tfrom: ", conn.RemoteAddr())
+		color.Blue(str)
+		fmt.Println()
+	}
 
 	device := protocol.DeviceIdentifier(conn.RemoteAddr().String())
 	if !s_manager.DeviceIsRegistered(device) {
@@ -46,7 +48,9 @@ func (s *handler) HandleRequest(conn net.Conn, req fstp.Request) fstp.Response {
 
 		return fstp.NewAllFilesResponse(allf)
 	case fstp.WhoHasReq:
-		color.Cyan("\n\nWho has request\n\n")
+		if debug {
+			color.Cyan("\n\nWho has request\n\n")
+		}
 		req, ok := req.Payload.(*fstp.WhoHasReqProps)
 		var ret fstp.WhoHasRespProps = s_manager.WhoHasFile(req.File)
 		if ok {
@@ -79,7 +83,12 @@ func (s *handler) HandleIHaveFileRequest(device protocol.DeviceIdentifier, req *
 
 var commands = map[string]func(*state_manager.StateManager, []string) helpers.StatusMessage{
 	"shutdown": func(g *state_manager.StateManager, a []string) helpers.StatusMessage { return shutdown() },
-	"files":    func(g *state_manager.StateManager, a []string) helpers.StatusMessage { return g.Files() },
+	"state": func(g *state_manager.StateManager, a []string) helpers.StatusMessage {
+		s := helpers.NewStatusMessage()
+		s.AddMessage(nil, g.State.String())
+		return s
+	},
+	"files": func(g *state_manager.StateManager, a []string) helpers.StatusMessage { return g.Files() },
 }
 
 func shutdown() helpers.StatusMessage {
@@ -93,7 +102,13 @@ func main() {
 	// s_manager.Load()
 	my_handler := handler{}
 	config := fstp.Config{Host: "0.0.0.0", Port: "8080"}
-	server := fstp.NewServer(&config, &my_handler)
+
+	for _, arg := range os.Args {
+		if arg == "-d" || arg == "--debug" {
+			debug = true
+		}
+	}
+	server := fstp.NewServer(&config, &my_handler, debug)
 	go server.Run()
 	reader := bufio.NewReader(os.Stdin)
 	helpers.TUI[*state_manager.StateManager](reader, s_manager, commands)

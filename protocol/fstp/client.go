@@ -1,7 +1,6 @@
 package fstp
 
 import (
-	"encoding/json"
 	"fmt"
 	"net"
 
@@ -9,19 +8,19 @@ import (
 )
 
 type Client struct {
-	Conn     net.Conn
-	UDP_PORT int
+	debugging bool
+	Conn      net.Conn
+	UDP_PORT  int
 }
 
-const debugging = true
 const DefaultUDPPort = 9090
 
-func NewClient(config Config) (*Client, error) {
+func NewClient(config Config, debugging bool) (*Client, error) {
 	conn, err := net.Dial("tcp", config.ServerAdress())
 	if err != nil {
 		return nil, err
 	}
-	return &Client{Conn: conn, UDP_PORT: DefaultUDPPort}, nil
+	return &Client{Conn: conn, UDP_PORT: DefaultUDPPort, debugging: debugging}, nil
 }
 
 func (client *Client) Close() {
@@ -31,12 +30,14 @@ func (client *Client) Close() {
 func (client *Client) Request(request Request) (*Response, error) {
 	req_msg := Message(request)
 	s, _ := req_msg.Serialize()
-	if debugging {
+
+	if client.debugging {
 		s_data := fmt.Sprint("\nsending: ", s)
 		s_str := fmt.Sprint("\nAKA \n\t<", HeaderType(int(s[0])), ">\n\tPayload: ", string(s[HeaderSize:]))
 		color.Green(s_data)
 		color.Blue(s_str)
 	}
+
 	client.Conn.Write(s)
 
 	var recieved_data []byte
@@ -55,7 +56,7 @@ func (client *Client) Request(request Request) (*Response, error) {
 			break
 		}
 	}
-	if debugging {
+	if client.debugging {
 		str := fmt.Sprint("\nAKA: \n\t<", HeaderType(int(recieved_data[0])), ">\n\tPayload: ", string(recieved_data[HeaderSize:]))
 		color.Blue(str)
 	}
@@ -65,8 +66,6 @@ func (client *Client) Request(request Request) (*Response, error) {
 	}
 	resp_msg := &Message{}
 	resp_msg.Deserialize(recieved_data)
-	x, _ := json.Marshal(resp_msg.Payload)
-	color.Cyan("just recieved this bitx: ", string(x))
 	resp := Response(*resp_msg)
 	return &resp, nil
 }

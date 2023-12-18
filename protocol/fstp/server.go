@@ -24,14 +24,16 @@ type Server struct {
 	host    string
 	port    string
 	handler Handler
+	debug   bool
 }
 
 // NewServer ...
-func NewServer(config *Config, handler Handler) *Server {
+func NewServer(config *Config, handler Handler, debug bool) *Server {
 	return &Server{
 		host:    config.Host,
 		port:    config.Port,
 		handler: handler,
+		debug:   debug,
 	}
 }
 
@@ -53,13 +55,13 @@ func (server *Server) Run() {
 			conn:    conn,
 			handler: server.handler,
 		}
-		go instance.handleClient()
+		go instance.handleClient(server.debug)
 	}
 }
 
 const buffer_limit = 1024
 
-func (instance *fstp_routine) handleClient() {
+func (instance *fstp_routine) handleClient(debugging bool) {
 	var err error
 
 	defer instance.handler.HandleShutdown(instance.conn, err)
@@ -84,7 +86,12 @@ func (instance *fstp_routine) handleClient() {
 
 		buffer = append(header, buffer...)
 
-		fmt.Printf("header: %x payload: %s \n", buffer[0:HeaderSize], buffer[HeaderSize-1:])
+		if debugging {
+			s_data := fmt.Sprint("\nsending: ", buffer)
+			s_str := fmt.Sprint("\nAKA \n\t<", HeaderType(int(buffer[0])), ">\n\tPayload: ", string(buffer[HeaderSize:]))
+			color.Green(s_data)
+			color.Blue(s_str)
+		}
 
 		req_msg := Message{}
 		req_msg.Deserialize(buffer)
@@ -99,10 +106,11 @@ func (instance *fstp_routine) handleClient() {
 			fmt.Println("Error serializing:", err)
 			return
 		}
+		if debugging {
 
-		str := fmt.Sprint("\nAKA: \n\t<", HeaderType(int(response[0])), ">\n\tPayload: ", string(response[HeaderSize:]))
-		color.Blue(str)
-
+			str := fmt.Sprint("\nAKA: \n\t<", HeaderType(int(response[0])), ">\n\tPayload: ", string(response[HeaderSize:]))
+			color.Blue(str)
+		}
 		_, err = instance.conn.Write(response)
 		if err != nil {
 			fmt.Println("Error writing:", err)
