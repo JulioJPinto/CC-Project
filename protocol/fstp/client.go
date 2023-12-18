@@ -69,6 +69,7 @@ func (client *Client) Request(request Request) (*Response, error) {
 	return &resp, nil
 }
 
+
 func IHaveFileRequest(props IHaveFileReqProps) Request {
 	header := Header{
 		IHaveFileReq,

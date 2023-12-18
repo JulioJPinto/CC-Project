@@ -70,6 +70,8 @@ func (d *Downloader) Start() error {
 		return err
 	}
 	pay, ok := resp.Payload.(*fstp.WhoHasRespProps)
+	x, _ := json.Marshal(pay)
+	println(string(x))
 	if !ok {
 		return fmt.Errorf("invalid payload")
 	}

@@ -62,12 +62,12 @@ func NewOkResponse() Response {
 	return Response{Header{OKResp}, nil}
 }
 
-type AllFilesRespProps struct {
-	Files map[protocol.FileHash]protocol.FileMetaData `json:"Files"`
-}
+type AllFilesRespProps  map[protocol.FileHash]protocol.FileMetaData 
 
-func NewAllFilesResponse(files map[protocol.FileHash]protocol.FileMetaData) Response {
-	props := AllFilesRespProps{Files: files}
+
+func NewAllFilesResponse(files AllFilesRespProps) Response {
+
+	props := AllFilesRespProps(files)
 	return Response{Header{Flags: AllFilesResp}, props}
 }
 

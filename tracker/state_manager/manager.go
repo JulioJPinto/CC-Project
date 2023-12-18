@@ -101,6 +101,7 @@ func (m *StateManager) BatchRegisterFileSegments(device protocol.DeviceIdentifie
 }
 
 func (m *StateManager) GetAllFiles() map[protocol.FileHash]protocol.FileMetaData {
+	
 	return m.State.RegisteredFiles.ToMap()
 }
 

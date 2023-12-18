@@ -42,7 +42,7 @@ func (s *handler) HandleRequest(conn net.Conn, req fstp.Request) fstp.Response {
 			return fstp.Response(fstp.Response{Header: fstp.Header{Flags: fstp.ErrResp}, Payload: nil})
 		}
 	case fstp.AllFilesReq:
-		return fstp.NewAllFilesResponse(s_manager.GetAllFiles())
+		return fstp.NewAllFilesResponse((s_manager.GetAllFiles()))
 	case fstp.WhoHasReq:
 		color.Cyan("\n\nWho has request\n\n")
 		req, ok := req.Payload.(*fstp.WhoHasReqProps)
