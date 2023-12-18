@@ -95,6 +95,24 @@ func (s *State) String() string {
 	return result
 }
 
+func (s *State) SegmentsNodesString() string {
+	segmentNodesMap := s.SegmentsNodes()
+	var result string
+
+	result += "Segments Nodes:\n"
+	for segment, nodes := range segmentNodesMap {
+		result += fmt.Sprintf(" - Segment: BlockOffset: %d, FileHash: %d, SegmentHash: %d\n",
+			segment.BlockOffset, segment.FileHash, segment.Hash)
+
+		result += "   - Nodes:\n"
+		for _, node := range nodes {
+			result += fmt.Sprintf("     - %s\n", node)
+		}
+	}
+
+	return result
+}
+
 var (
 	ErrBadSchema             = helpers.WrapError{Msg: "bad schema"}
 	ErrFileDoesNotExist      = helpers.WrapError{Msg: "file does not exist"}

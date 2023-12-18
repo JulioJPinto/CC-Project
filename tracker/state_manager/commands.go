@@ -4,6 +4,7 @@ import (
 	"cc_project/helpers"
 	"encoding/json"
 	"fmt"
+	"log"
 )
 
 func (s *StateManager) Files() helpers.StatusMessage {
@@ -15,11 +16,12 @@ func (s *StateManager) Files() helpers.StatusMessage {
 		x, _ := json.Marshal(f)
 		ret.AddMessage(nil, fmt.Sprint(string(x)))
 	}
-	// for segment, nodes := range s_n {
-	// 	for _, node := range nodes {
-	// 		ret.AddMessage(nil, fmt.Sprint(string(node), " has ", segment.String()))
-
-	// 	}
-	// }
 	return ret
+}
+
+
+func Shutdown() helpers.StatusMessage {
+	fmt.Println("would be a good time to save state to disk")
+	log.Fatal("shuting down ...")
+	return helpers.NewStatusMessage()
 }

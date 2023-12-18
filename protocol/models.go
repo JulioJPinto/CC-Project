@@ -31,7 +31,7 @@ func (meta *FileMetaData) FileSegments() []FileSegment {
 
 	for i, segmentHash := range meta.SegmentHashes {
 		segment := FileSegment{
-			BlockOffset: int64(i) * SegmentMaxLength,
+			BlockOffset: int64(i),
 			FileHash:    meta.Hash,
 			Hash:        segmentHash,
 		}

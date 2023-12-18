@@ -7,7 +7,6 @@ import (
 	"cc_project/protocol/fstp"
 	"cc_project/tracker/state_manager"
 	"fmt"
-	"log"
 	"net"
 	"os"
 
@@ -82,20 +81,20 @@ func (s *handler) HandleIHaveFileRequest(device protocol.DeviceIdentifier, req *
 }
 
 var commands = map[string]func(*state_manager.StateManager, []string) helpers.StatusMessage{
-	"shutdown": func(g *state_manager.StateManager, a []string) helpers.StatusMessage { return shutdown() },
+	"shutdown": func(g *state_manager.StateManager, a []string) helpers.StatusMessage { return state_manager.Shutdown() },
 	"state": func(g *state_manager.StateManager, a []string) helpers.StatusMessage {
 		s := helpers.NewStatusMessage()
 		s.AddMessage(nil, g.State.String())
 		return s
 	},
+	"segnod": func(g *state_manager.StateManager, a []string) helpers.StatusMessage {
+		s := helpers.NewStatusMessage()
+		s.AddMessage(nil, g.State.SegmentsNodesString())
+		return s
+	},
 	"files": func(g *state_manager.StateManager, a []string) helpers.StatusMessage { return g.Files() },
 }
 
-func shutdown() helpers.StatusMessage {
-	fmt.Println("would be a good time to save state to disk")
-	log.Fatal("shuting down ...")
-	return helpers.NewStatusMessage()
-}
 func main() {
 
 	s_manager = state_manager.NewManager("db.json")

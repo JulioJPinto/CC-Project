@@ -1,6 +1,10 @@
 package helpers
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"fmt"
+	"strings"
+)
 
 type Set[T comparable] struct {
 	data map[T]struct{}
@@ -27,6 +31,27 @@ func (s *Set[T]) UnmarshalJSON(data []byte) error {
 
 	return nil
 }
+
+
+func (s *Set[T]) String() string {
+	var result strings.Builder
+
+	result.WriteString("{")
+	first := true
+	for elem := range s.data {
+		if first {
+			result.WriteString(fmt.Sprintf("%v", elem))
+			first = false
+		} else {
+			result.WriteString(fmt.Sprintf(", %v", elem))
+		}
+	}
+
+	result.WriteString("}")
+
+	return result.String()
+}
+
 
 func NewSetFromSlice[T comparable](v []T) *Set[T] {
 	ret := NewSet[T]()
