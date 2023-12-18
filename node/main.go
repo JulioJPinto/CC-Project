@@ -37,7 +37,14 @@ func main() {
 		}
 	}
 
-	node, err := lib.NewNode(fstp_config, p2p_config)
+	debugging := false
+	for _, arg := range os.Args {
+		if arg == "-d" || arg == "--debug" {
+			debugging = true
+		}
+	}
+
+	node, err := lib.NewNode(fstp_config, p2p_config, debugging)
 
 	if err != nil {
 		log.Fatal(err)
@@ -54,8 +61,8 @@ func main() {
 		path = "node_files"
 		os.Mkdir(path, 0700)
 		fmt.Println("created", path, "folder")
-
 	}
+
 	node.NodeDir = path
 	go node.WatchFolder()
 	status := node.FetchFiles(nil)

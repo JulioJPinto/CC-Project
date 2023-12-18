@@ -89,7 +89,7 @@ func (node *Node) HandleP2PRequest(addr *net.UDPAddr, msg p2p.Message) {
 		color.Yellow("segment:")
 		color.Yellow(string(segment))
 	}
-	segment_data := node.KnownFiles[msg.FileId]
+	segment_data,_ := node.KnownFiles.Load(msg.FileId) // WARN !!!! NOT CHECKING THIS
 	hash := segment_data.SegmentHashes[msg.Header.SegmentOffset]
 	f := protocol.FileSegment{
 		BlockOffset: int64(msg.SegmentOffset),

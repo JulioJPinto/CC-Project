@@ -2,6 +2,7 @@ package lib
 
 import (
 	"cc_project/helpers"
+	helpers_sync "cc_project/helpers/sync"
 	"cc_project/protocol"
 	"cc_project/protocol/fstp"
 	"encoding/json"
@@ -16,13 +17,21 @@ import (
 func (node *Node) ResolveFileID(name string) (protocol.FileHash, error) {
 	hash_i, err := strconv.Atoi(name)
 	var hash protocol.FileHash
+	encountered := false
 	if err != nil {
-		for _, file := range node.KnownFiles {
+		node.KnownFiles.Range(func(key protocol.FileHash, file protocol.FileMetaData) bool {
+
 			if file.Name == name {
-				return file.Hash, nil
+				hash = file.Hash
+				encountered = true
+				return false
 			}
+			return true
+
+		})
+		if !encountered {
+			return 0, fmt.Errorf("%v does not exist", name)
 		}
-		return 0, fmt.Errorf("%v does not exist", name)
 	} else {
 		hash = protocol.FileHash(hash_i)
 	}
@@ -54,7 +63,7 @@ func (node *Node) MakeDirectoryAvailable(directory string) error {
 			fdata.Name = filepath.Base(fp)
 			fstp_client.Request(fstp.IHaveFileRequest(fstp.IHaveFileReqProps(*fdata)))
 			node.MyFiles[fdata.Hash] = fp
-			node.KnownFiles[fdata.Hash] = *fdata
+			node.KnownFiles.Store(fdata.Hash, *fdata)
 		}
 
 		return nil
@@ -80,7 +89,7 @@ func (node *Node) makeFileAvailable(f_path string) error {
 			return err
 		} else {
 			node.MyFiles[fdata.Hash] = f_path
-			node.KnownFiles[fdata.Hash] = *fdata
+			node.KnownFiles.Store(fdata.Hash, *fdata)
 			fdata.OriginatorIP = fstp_client.Conn.LocalAddr().String()
 			fdata.Name = filepath.Base(f_path)
 			fstp_client.Request(fstp.IHaveFileRequest(fstp.IHaveFileReqProps(*fdata)))
@@ -91,7 +100,7 @@ func (node *Node) makeFileAvailable(f_path string) error {
 
 func (node *Node) FetchFiles(_ []string) helpers.StatusMessage {
 	resp, err := node.FSTPclient.Request(fstp.AllFilesRequest())
-	ret := helpers.StatusMessage{}
+	ret := helpers.NewStatusMessage()
 	if err != nil {
 		ret.AddError(err)
 		return ret
@@ -103,8 +112,9 @@ func (node *Node) FetchFiles(_ []string) helpers.StatusMessage {
 		ret.AddError(fmt.Errorf("invalid payload type: %v", resp.Payload))
 		return ret
 	}
-	helpers.MergeMaps[protocol.FileHash, protocol.FileMetaData](node.KnownFiles, all_files.Files)
-	keys := helpers.MapKeys[protocol.FileHash](all_files.Files)
+	node.KnownFiles = helpers_sync.FromMap(*all_files)
+	keys := helpers.MapKeys[protocol.FileHash](*all_files)
+	all_files = nil
 	ret.AddMessage(nil, fmt.Sprint("fetched", keys))
 	return ret
 }
@@ -120,9 +130,11 @@ func (node *Node) UploadFiles(args []string) helpers.StatusMessage {
 func (node *Node) ListFiles(_ []string) helpers.StatusMessage {
 	node.FetchFiles(nil)
 	ret := helpers.StatusMessage{}
-	for _, v := range node.KnownFiles {
+	node.KnownFiles.Range(func(_ protocol.FileHash, v protocol.FileMetaData) bool {
 		fmt.Println(v.Name, ":", v.Hash)
-	}
+		return true
+
+	})
 	return ret
 }
 
@@ -135,7 +147,7 @@ func (node *Node) WhoHas(files []string) helpers.StatusMessage {
 			ret.AddError(err)
 			continue
 		}
-		fdata := node.KnownFiles[protocol.FileHash(hash)]
+		fdata, _ := node.KnownFiles.Load(protocol.FileHash(hash))
 		resp, _ := node.FSTPclient.Request(fstp.NewWhoHasRequest(fstp.WhoHasReqProps{File: protocol.FileHash(hash)}))
 		resp_payload, ok := resp.Payload.(*fstp.WhoHasRespProps)
 		if !ok {

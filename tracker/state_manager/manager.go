@@ -1,9 +1,12 @@
 package state_manager
 
 import (
+	"cc_project/helpers"
 	"cc_project/protocol"
 	"fmt"
 	"os"
+
+	"github.com/fatih/color"
 )
 
 type StateManager struct {
@@ -20,22 +23,32 @@ func (m *StateManager) Connect() error {
 }
 
 func (m *StateManager) RegisterDevice(device protocol.Device) error {
-	m.State.Registered_nodes.Add(device)
-	fmt.Println(*m.State.Registered_nodes)
+	m.State.RegisteredNodes.Add(device)
+	fmt.Println(m.State.RegisteredNodes.List())
 	return nil
 }
 
 func (m *StateManager) DeviceIsRegistered(deviceID protocol.DeviceIdentifier) bool {
 	f := func(d protocol.Device) bool { return d.GetIdentifier() == deviceID }
-	return m.State.Registered_nodes.AnyMatch(f)
+	return m.State.RegisteredNodes.AnyMatch(f)
 }
 
 func (m *StateManager) LeaveNetwork(device protocol.DeviceIdentifier) error {
+	m.State.Print()
 	f := func(d protocol.Device) bool { return d.GetIdentifier() == device }
-	m.State.Registered_nodes.RemoveIf(f)
-	// segments_nodes := m.SegmentsNodes()
-	delete(m.State.Nodes_segments, device)
+	m.State.RegisteredNodes.RemoveIf(f)
+	m.State.NodesSegments.Delete(device)
+	exsiting_segments := helpers.MapKeys(m.SegmentsNodes())
+	m.State.Print()
 
+	m.State.RegisteredFiles.Range(func(key protocol.FileHash, val protocol.FileMetaData) bool {
+		segments := helpers.NewSetFromSlice[protocol.FileSegment](val.FileSegments())
+		if !segments.IsSubset(exsiting_segments) {
+			color.Red("DELETING", key)
+			m.State.RegisteredFiles.Delete(key)
+		}
+		return true
+	})
 	return nil
 }
 
@@ -45,28 +58,28 @@ func (m *StateManager) RegisterFile(device protocol.DeviceIdentifier, file_info 
 	}
 	file_info.OriginatorIP = string(device)
 	f := func(d protocol.Device) bool { return d.GetIdentifier() == device }
-	if !m.State.Registered_nodes.AnyMatch(f) {
+	if !m.State.RegisteredNodes.AnyMatch(f) {
 		return ErrNodeNotRegistered
 	}
-	m.State.Registered_files[file_info.Hash] = file_info
+	m.State.RegisteredFiles.Store(file_info.Hash, file_info)
 	for i, s_hash := range file_info.SegmentHashes {
 		s := protocol.FileSegment{BlockOffset: int64(i), FileHash: file_info.Hash, Hash: s_hash}
-		p, ok := m.State.Nodes_segments[device]
+		p, ok := m.State.NodesSegments.Load(device)
 		if !ok {
 			p = make([]protocol.FileSegment, 1)
 		}
-		m.State.Nodes_segments[device] = append(p, s)
+		m.State.NodesSegments.Store(device, append(p, s))
 	}
 	return nil
 }
 
 func (m *StateManager) FileIsRegistered(hash protocol.FileHash) bool {
-	_, ok := m.State.Registered_files[hash]
+	_, ok := m.State.RegisteredFiles.Load(hash)
 	return ok
 }
 
 func (m *StateManager) RegisterFileSegment(device protocol.DeviceIdentifier, file_segment protocol.FileSegment) error {
-	x, ok := m.State.Registered_files[file_segment.FileHash]
+	x, ok := m.State.RegisteredFiles.Load(file_segment.FileHash)
 	if !ok {
 		return ErrFileDoesNotExist
 	}
@@ -74,7 +87,8 @@ func (m *StateManager) RegisterFileSegment(device protocol.DeviceIdentifier, fil
 	if x.SegmentHashes[offset] != file_segment.Hash {
 		return ErrInvalidSegmentHash
 	}
-	m.State.Nodes_segments[device] = append(m.State.Nodes_segments[device], file_segment)
+	p, _ := m.State.NodesSegments.Load(device) // WARNING WE BE IGNORIN STUFFS
+	m.State.NodesSegments.Store(device, append(p, file_segment))
 	return nil
 }
 
@@ -89,14 +103,15 @@ func (m *StateManager) BatchRegisterFileSegments(device protocol.DeviceIdentifie
 }
 
 func (m *StateManager) GetAllFiles() map[protocol.FileHash]protocol.FileMetaData {
-	return m.State.Registered_files
+
+	return m.State.RegisteredFiles.ToMap()
 }
 
 // type WhoHasRespProps map[FileHash](map[DeviceIdentifier]FileSegment)
 
 func (m *StateManager) WhoHasFile(hash protocol.FileHash) map[protocol.DeviceIdentifier][]protocol.FileSegment {
 	ret := make(map[protocol.DeviceIdentifier][]protocol.FileSegment)
-	for device, segments := range m.State.Nodes_segments {
+	m.State.NodesSegments.Range(func(device protocol.DeviceIdentifier, segments []protocol.FileSegment) bool {
 		for _, segment := range segments {
 			if segment.FileHash == hash {
 				_, ok := ret[device]
@@ -107,7 +122,8 @@ func (m *StateManager) WhoHasFile(hash protocol.FileHash) map[protocol.DeviceIde
 				}
 			}
 		}
-	}
+		return true
+	})
 	return ret
 }
 

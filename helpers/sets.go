@@ -3,21 +3,25 @@ package helpers
 import "encoding/json"
 
 type Set[T comparable] struct {
-	data []T
+	data map[T]struct{}
 }
 
 func (s *Set[T]) MarshalJSON() ([]byte, error) {
-	return json.Marshal(s.data)
+	var slice []T
+	for elem := range s.data {
+		slice = append(slice, elem)
+	}
+	return json.Marshal(slice)
 }
 
 func (s *Set[T]) UnmarshalJSON(data []byte) error {
-	var arr []T
-	if err := json.Unmarshal(data, &arr); err != nil {
+	var slice []T
+	if err := json.Unmarshal(data, &slice); err != nil {
 		return err
 	}
 
-	s.data = make([]T, len(arr))
-	for _, item := range arr {
+	s.data = make(map[T]struct{})
+	for _, item := range slice {
 		s.Add(item)
 	}
 
@@ -33,27 +37,25 @@ func NewSetFromSlice[T comparable](v []T) *Set[T] {
 }
 
 func NewSet[T comparable]() *Set[T] {
-	return &Set[T]{make([]T, 0)}
+	return &Set[T]{make(map[T]struct{})}
 }
 
 func (s *Set[T]) Slice() []T {
-	ret := make([]T, 0)
-	copy(s.data, ret)
+	ret := make([]T, 0, len(s.data))
+	for elem := range s.data {
+		ret = append(ret, elem)
+	}
 	return ret
 }
 
 func (s *Set[T]) Contains(elem T) bool {
-	for _, e := range s.data {
-		if e == elem {
-			return true
-		}
-	}
-	return false
+	_, exists := s.data[elem]
+	return exists
 }
 
 func (s *Set[T]) AnyMatch(f func(T) bool) bool {
-	for _, item := range s.data {
-		if f(item) {
+	for elem := range s.data {
+		if f(elem) {
 			return true
 		}
 	}
@@ -61,47 +63,49 @@ func (s *Set[T]) AnyMatch(f func(T) bool) bool {
 }
 
 func (s *Set[T]) Add(elem T) {
-	// Check if the element already exists in the set before adding it
-	if !s.Contains(elem) {
-		s.data = append(s.data, elem)
-	}
+	s.data[elem] = struct{}{}
 }
 
-func (s *Set[T]) Remove(elem T){
-	for i, e := range s.data {
-        if e == elem {
-            s.data = append(s.data[:i], s.data[i+1:]...)
-        }
-    }
+func (s *Set[T]) Remove(elem T) {
+	delete(s.data, elem)
 }
 
 func (s *Set[T]) RemoveIf(f func(T) bool) {
-	for i, e := range s.data {
-        if f(e) {
-            s.data = append(s.data[:i], s.data[i+1:]...)
-        }
-    }
+	for elem := range s.data {
+		if f(elem) {
+			delete(s.data, elem)
+		}
+	}
 }
 
-func (s *Set[T]) Union(other Set[T]) *Set[T] {
+func (s *Set[T]) Union(other *Set[T]) *Set[T] {
 	result := NewSet[T]()
-	for _, elem := range s.data {
+	for elem := range s.data {
 		result.Add(elem)
 	}
-	for _, elem := range other.data {
+	for elem := range other.data {
 		result.Add(elem)
 	}
 	return result
 }
 
-func (s *Set[T]) Intersection(other Set[T]) *Set[T] {
+func (s *Set[T]) Intersection(other *Set[T]) *Set[T] {
 	result := NewSet[T]()
-	for _, elem := range s.data {
+	for elem := range s.data {
 		if other.Contains(elem) {
 			result.Add(elem)
 		}
 	}
 	return result
+}
+
+func (s *Set[T]) IsSubset(other *Set[T]) bool {
+	for elem := range s.data {
+		if !other.Contains(elem) {
+			return false
+		}
+	}
+	return true
 }
 
 func SliceContains[T comparable](s []T, e T) bool {
