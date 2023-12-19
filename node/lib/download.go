@@ -7,12 +7,12 @@ import (
 	"cc_project/protocol/p2p"
 	"encoding/json"
 	"path"
+	"sort"
 
 	"github.com/fatih/color"
 
 	"cc_project/helpers/sync"
 	"fmt"
-	"net"
 	"os"
 	"time"
 )
@@ -38,6 +38,39 @@ type Downloader struct {
 	done      *sync.Flag
 	interrupt *sync.Flag
 	whoHas    map[protocol.DeviceIdentifier][]protocol.FileSegment
+}
+
+func NewDownloader(node *Node, file protocol.FileHash) *Downloader {
+	channel := make(chan AddrMessage)
+	done := sync.Flag{}
+	interrupt := sync.Flag{}
+	interrupt.Unset()
+	done.Unset()
+	return &Downloader{
+		node:      node,
+		file:      file,
+		channel:   channel,
+		segments:  &sync.Map[int, Status]{},
+		done:      &done,
+		interrupt: &interrupt,
+		whoHas:    nil,
+	}
+}
+
+func (d *Downloader) stillNeed() map[protocol.DeviceIdentifier][]protocol.FileSegment {
+	ret := map[protocol.DeviceIdentifier][]protocol.FileSegment{}
+	for peer, segments := range d.whoHas {
+		needed := []protocol.FileSegment{}
+		for _, segment := range segments {
+			if x, _ := d.segments.Load(int(segment.BlockOffset)); x == Missing {
+				needed = append(needed, segment)
+			}
+		}
+		if len(needed) > 0 {
+			ret[peer] = needed
+		}
+	}
+	return ret
 }
 
 func (d *Downloader) PrintState() {
@@ -83,23 +116,6 @@ func (d *Downloader) PrintState() {
 
 func (d *Downloader) ForwardMessage(msg p2p.Message, peer protocol.DeviceIdentifier) {
 	d.channel <- AddrMessage{msg: msg, peer: peer}
-}
-
-func NewDownloader(node *Node, file protocol.FileHash) *Downloader {
-	channel := make(chan AddrMessage)
-	done := sync.Flag{}
-	interrupt := sync.Flag{}
-	interrupt.Unset()
-	done.Unset()
-	return &Downloader{
-		node:      node,
-		file:      file,
-		channel:   channel,
-		segments:  &sync.Map[int, Status]{},
-		done:      &done,
-		interrupt: &interrupt,
-		whoHas:    nil,
-	}
 }
 
 func (d *Downloader) Start() error {
@@ -159,17 +175,47 @@ func (d *Downloader) Abort() error {
 	return nil
 }
 
-func (node *Node) DownloadFile(file_hash protocol.FileHash) error {
-	color.Green("DOWNLOADIN " + fmt.Sprintf("%d", file_hash))
+func getSortedKeys(m map[protocol.DeviceIdentifier]float64) []protocol.DeviceIdentifier {
+	// Create a slice to store the keys
+	keys := make([]protocol.DeviceIdentifier, 0, len(m))
 
-	if _, ok := node.Downloads.Load(file_hash); ok {
-		return fmt.Errorf("download already in progress")
+	// Populate the slice with keys from the map
+	for key := range m {
+		keys = append(keys, key)
 	}
-	downloader := NewDownloader(node, file_hash)
 
-	err := downloader.Start()
-	node.Downloads.Delete(file_hash)
-	return err
+	// Sort the keys based on their corresponding values
+	sort.Slice(keys, func(i, j int) bool {
+		return m[keys[i]] < m[keys[j]]
+	})
+
+	return keys
+}
+
+func (d *Downloader) pickGaijos(set *helpers.Set[protocol.DeviceIdentifier], max int) map[protocol.DeviceIdentifier]float64 {
+	ret_ := map[protocol.DeviceIdentifier]float64{}
+	gajos := set.Slice()
+	max_weight := 0.
+	for _, gajo := range gajos {
+		stats_gajo, ok := d.node.PeerStats.Load(gajo)
+		if ok {
+			weight := stats_gajo.Weight()
+			if weight > max_weight {
+				max_weight = weight
+			}
+			ret_[gajo] = weight
+		} else {
+			ret_[gajo] = 1
+
+		}
+	}
+	sorted := getSortedKeys(ret_)
+	ret := map[protocol.DeviceIdentifier]float64{}
+	for i := 0; i < max && i < len(sorted); i++ {
+		ret[sorted[i]] = max_weight / (ret_[sorted[i]] + 0.1)
+	}
+	return ret
+
 }
 
 func (d *Downloader) send_segment_requests() bool {
@@ -178,12 +224,20 @@ func (d *Downloader) send_segment_requests() bool {
 			close(d.channel)
 			return true
 		}
-		for id, segments := range d.whoHas {
-			for _, segment := range segments {
-				// var status Status = Missing
+
+		n_gaijos := 4
+		needed := d.stillNeed()
+		fmt.Println("NEEEEEDEDD: ", needed)
+		set_gajos := helpers.MapKeys(needed)
+		gajos := d.pickGaijos(set_gajos, n_gaijos)
+		fmt.Println("GAJOS:   ", gajos)
+		for gajo, peso := range gajos {
+			needed_from_gajo := needed[gajo]
+			for i := 0; i < int(peso)+1&& i<len(needed_from_gajo); i++ {
+				segment := needed_from_gajo[i]
 				status, _ := d.segments.Load(int(segment.BlockOffset))
 				if status == Missing {
-					d.node.RequestSegment(id, segment)
+					d.node.RequestSegment(gajo, segment)
 					fmt.Println("just requested", segment.BlockOffset)
 					d.segments.Store(int(segment.BlockOffset), Pending)
 				} else if status > 0 {
@@ -193,9 +247,27 @@ func (d *Downloader) send_segment_requests() bool {
 				if status > 5 {
 					d.segments.Store(int(segment.BlockOffset), Missing)
 				}
-
 			}
 		}
+
+		// for id, segments := range d.whoHas {
+		// 	for _, segment := range segments {
+		// 		// var status Status = Missing
+		// 		status, _ := d.segments.Load(int(segment.BlockOffset))
+		// 		if status == Missing {
+		// 			d.node.RequestSegment(id, segment)
+		// 			fmt.Println("just requested", segment.BlockOffset)
+		// 			d.segments.Store(int(segment.BlockOffset), Pending)
+		// 		} else if status > 0 {
+		// 			status++
+		// 			d.segments.Store(int(segment.BlockOffset), status)
+		// 		}
+		// 		if status > 5 {
+		// 			d.segments.Store(int(segment.BlockOffset), Missing)
+		// 		}
+
+		// 	}
+		// }
 		time.Sleep(1000 * time.Millisecond)
 	}
 }
@@ -259,17 +331,4 @@ func (d *Downloader) await_segment_responses(file protocol.FileMetaData, path_ s
 		}
 	}
 	println(" HERE ??????????????????????")
-}
-
-func (node *Node) RequestSegment(peer protocol.DeviceIdentifier, segment protocol.FileSegment) {
-	timestamp := helpers.TrunkI64(time.Now().UnixMilli())
-	req := p2p.Message(p2p.GimmeFileSegmentRequest(segment, uint32(timestamp)))
-	x := &req
-	b, err := x.Serialize()
-	if err != nil {
-		return
-	}
-	addr, _ := net.ResolveUDPAddr("udp", string(peer))
-	addr.Port = 9090
-	node.sender.Send(*addr, b)
 }

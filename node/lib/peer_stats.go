@@ -1,6 +1,9 @@
 package lib
 
-import "fmt"
+import (
+	"fmt"
+	"math"
+)
 
 // import "cc_project/helpers"
 
@@ -16,14 +19,22 @@ func (p PeerStats) String() string {
 	return fmt.Sprintf("IP_RTT: %d, P2P_RTT: %d, Load: %d%%, NPackets: %d, NDroppedPackets: %d", p.IP_RTT, p.P2P_RTT, p.Load, p.NPackets, p.NDroppedPackets)
 }
 
-func PeerWeight(stats PeerStats) float64 {
+func (stats *PeerStats) Weight2() float64 {
+
 	ipRTTWeight := 0.25
 	p2pRTTWeight := 0.25
-	nPacketsWeight := 0.25
-	nDroppedPacketsWeight := 0.25
+	packetsRatioWeight := 0.25
 
-	return ((float64(stats.IP_RTT) * ipRTTWeight) + 
-			(float64(stats.P2P_RTT) * p2pRTTWeight) + 
-			(float64(stats.NPackets) * nPacketsWeight) + 
-			(float64(stats.NDroppedPackets) * nDroppedPacketsWeight))
+	return ((float64(stats.IP_RTT) * ipRTTWeight) +
+		(float64(stats.P2P_RTT) * p2pRTTWeight) +
+		((float64(stats.NDroppedPackets) / (float64(stats.NPackets))) * packetsRatioWeight))
+
+}
+
+func (stats *PeerStats) Weight() float64 {
+
+	loss_rate := (float64(stats.NDroppedPackets) / (float64(stats.NPackets)))
+	lossweight := math.Pow(10, loss_rate)
+	return (float64(stats.P2P_RTT) * lossweight)
+
 }

@@ -55,15 +55,14 @@ func (m *StateManager) LeaveNetwork(device protocol.DeviceIdentifier) error {
 }
 
 func (m *StateManager) RegisterFile(device protocol.DeviceIdentifier, file_info protocol.FileMetaData) error {
-	if m.FileIsRegistered(file_info.Hash) {
-		return ErrFileAlreadyRegistered
+	if !m.FileIsRegistered(file_info.Hash) {
+		file_info.OriginatorIP = string(device)
+		f := func(d protocol.Device) bool { return d.GetIdentifier() == device }
+		if !m.State.RegisteredNodes.AnyMatch(f) {
+			return ErrNodeNotRegistered
+		}
+		m.State.RegisteredFiles.Store(file_info.Hash, file_info)
 	}
-	file_info.OriginatorIP = string(device)
-	f := func(d protocol.Device) bool { return d.GetIdentifier() == device }
-	if !m.State.RegisteredNodes.AnyMatch(f) {
-		return ErrNodeNotRegistered
-	}
-	m.State.RegisteredFiles.Store(file_info.Hash, file_info)
 	for i, s_hash := range file_info.SegmentHashes {
 		s := protocol.FileSegment{BlockOffset: int64(i), FileHash: file_info.Hash, Hash: s_hash}
 		p, ok := m.State.NodesSegments.Load(device)

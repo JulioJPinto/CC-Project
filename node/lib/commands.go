@@ -10,6 +10,8 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+
+	"github.com/fatih/color"
 )
 
 func (node *Node) ResolveFileID(name string) (protocol.FileHash, error) {
@@ -159,6 +161,20 @@ func (node *Node) WhoHas(files []string) helpers.StatusMessage {
 		ret.AddMessage(nil, fmt.Sprint(fdata.Name, ":", fdata.Hash))
 	}
 	return ret
+}
+
+
+func (node *Node) DownloadFile(file_hash protocol.FileHash) error {
+	color.Green("DOWNLOADIN " + fmt.Sprintf("%d", file_hash))
+
+	if _, ok := node.Downloads.Load(file_hash); ok {
+		return fmt.Errorf("download already in progress")
+	}
+	downloader := NewDownloader(node, file_hash)
+
+	err := downloader.Start()
+	node.Downloads.Delete(file_hash)
+	return err
 }
 
 func (node *Node) Download(args []string) helpers.StatusMessage {

@@ -34,7 +34,7 @@ func SelectNode(peerStats *helpers_sync.Map[protocol.DeviceIdentifier, *PeerStat
 	var totalWeight float64
 
 	peerStats.Range(func(deviceID protocol.DeviceIdentifier, stats *PeerStats) bool {
-		weight := PeerWeight(*stats)
+		weight := stats.Weight()
 		converted[deviceID] = weight
 		totalWeight += weight
 		return true
