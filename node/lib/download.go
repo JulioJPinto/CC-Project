@@ -59,7 +59,7 @@ func (d *Downloader) PrintState() {
 			}
 		case Downloaded:
 			{
-				fmt.Printf("   - Segment %d: Missing\n", segmentIndex)
+				fmt.Printf("   - Segment %d: Downloaded\n", segmentIndex)
 			}
 		default:
 			{
@@ -103,9 +103,9 @@ func NewDownloader(node *Node, file protocol.FileHash) *Downloader {
 }
 
 func (d *Downloader) Start() error {
-	channel := make(chan p2p.Message)
 	d.node.Downloads.Store(d.file, d)
 	color.Green("created channel for " + fmt.Sprintf("%d", d.file))
+	fmt.Println(d.channel)
 	file_meta_data, ok := d.node.KnownFiles.Load(d.file) // file_meta_data,ok := c.KnownFiles.get(d.file)
 
 	if !ok {
@@ -149,8 +149,8 @@ func (d *Downloader) Start() error {
 	path := d.node.NodeDir
 
 	go d.await_segment_responses(file_meta_data, path)
-	d.send_segment_requests()
-	close(channel)
+	X := d.send_segment_requests()
+	println("HEREEEEE", X)
 	return nil
 }
 
@@ -166,15 +166,17 @@ func (node *Node) DownloadFile(file_hash protocol.FileHash) error {
 		return fmt.Errorf("download already in progress")
 	}
 	downloader := NewDownloader(node, file_hash)
+
 	err := downloader.Start()
 	node.Downloads.Delete(file_hash)
 	return err
 }
 
-func (d *Downloader) send_segment_requests() {
+func (d *Downloader) send_segment_requests() bool {
 	for {
 		if d.done.IsSet() || d.interrupt.IsSet() {
-			break
+			close(d.channel)
+			return true
 		}
 		for id, segments := range d.whoHas {
 			for _, segment := range segments {
@@ -184,8 +186,7 @@ func (d *Downloader) send_segment_requests() {
 					d.node.RequestSegment(id, segment)
 					fmt.Println("just requested", segment.BlockOffset)
 					d.segments.Store(int(segment.BlockOffset), Pending)
-				}
-				if status > 0 {
+				} else if status > 0 {
 					status++
 					d.segments.Store(int(segment.BlockOffset), status)
 				}
@@ -200,16 +201,28 @@ func (d *Downloader) send_segment_requests() {
 }
 
 func (d *Downloader) checkIfDone() {
-	done := d.segments.Fold(true, func(a any, k int, v Status) any {
-		return a == true && v == Downloaded
+	done := true
+
+	d.segments.Range(func(key int, status Status) bool {
+		if status != Downloaded {
+			done = false
+			// Stop ranging since we found a segment that is not downloaded
+			return false
+		}
+
+		return true
 	})
-	if done == true {
+
+	if done {
 		d.done.Set()
 	}
-
 }
 
 func (d *Downloader) await_segment_responses(file protocol.FileMetaData, path_ string) {
+	fmt.Println(d.channel)
+
+	fmt.Println(d.channel)
+
 	store_path := path.Join(path_, file.Name)
 	writef, err := os.Create(store_path)
 	if err != nil {
@@ -217,13 +230,17 @@ func (d *Downloader) await_segment_responses(file protocol.FileMetaData, path_ s
 	}
 
 	for addrmsg := range d.channel {
+
 		segmente_offset := addrmsg.msg.Header.SegmentOffset * protocol.SegmentMaxLength
-		headerJSON, _ := json.MarshalIndent(addrmsg.msg.Header, "", "  ")
-		fmt.Println(string(headerJSON))
+		// headerJSON, _ := json.MarshalIndent(addrmsg.msg.Header, "", "  ")
+		// fmt.Println(string(headerJSON))
 
 		if file.SegmentHashes[addrmsg.msg.Header.SegmentOffset] == protocol.HashSegment(addrmsg.msg.Payload, int(addrmsg.msg.Length)) {
+			show1 := fmt.Sprintf("the hashin do be matchin in segment %d of file %s\n", addrmsg.msg.Header.SegmentOffset, file.Name)
+			color.Green(show1)
+
 			d.segments.Store(int(addrmsg.msg.Header.SegmentOffset), Downloaded)
-			go d.checkIfDone()
+			d.checkIfDone()
 			writef.Seek(int64(segmente_offset), 0)
 			writef.Write([]byte(addrmsg.msg.Payload))
 		} else {
@@ -234,11 +251,14 @@ func (d *Downloader) await_segment_responses(file protocol.FileMetaData, path_ s
 			peer_stats, _ := d.node.PeerStats.Load(addrmsg.peer)
 			peer_stats.NDroppedPackets++
 			d.node.PeerStats.Store(addrmsg.peer, peer_stats)
-			go d.checkIfDone()
+			d.checkIfDone()
 
 		}
-		// writef.Seek(int64(segmente_offset), 0)
+		if d.done.IsSet() {
+			return
+		}
 	}
+	println(" HERE ??????????????????????")
 }
 
 func (node *Node) RequestSegment(peer protocol.DeviceIdentifier, segment protocol.FileSegment) {
