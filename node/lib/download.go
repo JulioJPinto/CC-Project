@@ -26,17 +26,59 @@ const (
 )
 
 type AddrMessage struct {
-	msg p2p.Message
+	msg  p2p.Message
 	peer protocol.DeviceIdentifier
 }
 
 type Downloader struct {
-	node     *Node
-	file     protocol.FileHash
-	channel  chan AddrMessage
-	segments *sync.Map[int, Status]
-	done     *sync.Flag
-	whoHas   map[protocol.DeviceIdentifier][]protocol.FileSegment
+	node      *Node
+	file      protocol.FileHash
+	channel   chan AddrMessage
+	segments  *sync.Map[int, Status]
+	done      *sync.Flag
+	interrupt *sync.Flag
+	whoHas    map[protocol.DeviceIdentifier][]protocol.FileSegment
+}
+
+func (d *Downloader) PrintState() {
+	fmt.Printf("Downloader State:\n")
+	fmt.Printf(" - File: %d\n", d.file)
+	fmt.Printf(" - Channel: %p\n", d.channel)
+	fmt.Printf(" - Done: %v\n", d.done.IsSet())
+
+	fmt.Println(" - Segments:")
+	d.segments.Range(func(key int, value Status) bool {
+		segmentIndex := key
+
+		status := value
+		switch status {
+		case Missing:
+			{
+				fmt.Printf("   - Segment %d: Missing\n", segmentIndex)
+
+			}
+		case Downloaded:
+			{
+				fmt.Printf("   - Segment %d: Missing\n", segmentIndex)
+			}
+		default:
+			{
+				fmt.Printf("   - Segment %d: %d\n", segmentIndex, status)
+
+			}
+		}
+		return true
+	})
+
+	fmt.Println(" - WhoHas:")
+	for deviceID, segments := range d.whoHas {
+		fmt.Printf("   - Device ID: %s\n", deviceID)
+		fmt.Println("     - Segments:")
+		for _, segment := range segments {
+			fmt.Printf("       - BlockOffset: %d, SegmentHash: %d\n",
+				segment.BlockOffset, segment.Hash)
+		}
+	}
 }
 
 func (d *Downloader) ForwardMessage(msg p2p.Message, peer protocol.DeviceIdentifier) {
@@ -46,14 +88,17 @@ func (d *Downloader) ForwardMessage(msg p2p.Message, peer protocol.DeviceIdentif
 func NewDownloader(node *Node, file protocol.FileHash) *Downloader {
 	channel := make(chan AddrMessage)
 	done := sync.Flag{}
+	interrupt := sync.Flag{}
+	interrupt.Unset()
 	done.Unset()
 	return &Downloader{
-		node:     node,
-		file:     file,
-		channel:  channel,
-		segments: &sync.Map[int, Status]{},
-		done:     &done,
-		whoHas:   nil,
+		node:      node,
+		file:      file,
+		channel:   channel,
+		segments:  &sync.Map[int, Status]{},
+		done:      &done,
+		interrupt: &interrupt,
+		whoHas:    nil,
 	}
 }
 
@@ -109,6 +154,11 @@ func (d *Downloader) Start() error {
 	return nil
 }
 
+func (d *Downloader) Abort() error {
+	d.interrupt.Set()
+	return nil
+}
+
 func (node *Node) DownloadFile(file_hash protocol.FileHash) error {
 	color.Green("DOWNLOADIN " + fmt.Sprintf("%d", file_hash))
 
@@ -123,7 +173,7 @@ func (node *Node) DownloadFile(file_hash protocol.FileHash) error {
 
 func (d *Downloader) send_segment_requests() {
 	for {
-		if d.done.IsSet() {
+		if d.done.IsSet() || d.interrupt.IsSet() {
 			break
 		}
 		for id, segments := range d.whoHas {
@@ -133,11 +183,19 @@ func (d *Downloader) send_segment_requests() {
 				if status == Missing {
 					d.node.RequestSegment(id, segment)
 					fmt.Println("just requested", segment.BlockOffset)
+					d.segments.Store(int(segment.BlockOffset), Pending)
 				}
-				d.segments.Store(int(segment.BlockOffset), Pending)
+				if status > 0 {
+					status++
+					d.segments.Store(int(segment.BlockOffset), status)
+				}
+				if status > 5 {
+					d.segments.Store(int(segment.BlockOffset), Missing)
+				}
+
 			}
-			time.Sleep(1000 * time.Millisecond)
 		}
+		time.Sleep(1000 * time.Millisecond)
 	}
 }
 
@@ -169,31 +227,18 @@ func (d *Downloader) await_segment_responses(file protocol.FileMetaData, path_ s
 			writef.Seek(int64(segmente_offset), 0)
 			writef.Write([]byte(addrmsg.msg.Payload))
 		} else {
-			color.Red("the hashin do NOT be matchin")
+			show1 := fmt.Sprintf("the hashin do NOT be matchin in segment %d of file %s\n", addrmsg.msg.Header.SegmentOffset, file.Name)
+			color.Red(show1)
 			show := fmt.Sprintf("%d vs %d", file.SegmentHashes[addrmsg.msg.Header.SegmentOffset], protocol.HashSegment(addrmsg.msg.Payload, int(addrmsg.msg.Length)))
 			color.Red(show)
-			// d.node.PeerStats()
+			peer_stats, _ := d.node.PeerStats.Load(addrmsg.peer)
+			peer_stats.NDroppedPackets++
+			d.node.PeerStats.Store(addrmsg.peer, peer_stats)
 			go d.checkIfDone()
-			writef.Seek(int64(segmente_offset), 0)
-			writef.Write([]byte(addrmsg.msg.Payload))
 
 		}
 		// writef.Seek(int64(segmente_offset), 0)
 	}
-}
-
-func (node *Node) Distribute(device_segments map[protocol.DeviceIdentifier][]protocol.FileSegment, metadata protocol.FileMetaData) map[int64]protocol.DeviceIdentifier {
-	ret := make(map[int64]protocol.DeviceIdentifier)
-	for n := int64(0); n < int64(metadata.Length/protocol.SegmentMaxLength); n++ {
-		for device, segments := range device_segments {
-			for _, segment := range segments {
-				if segment.BlockOffset == n {
-					ret[n] = device
-				}
-			}
-		}
-	}
-	return ret
 }
 
 func (node *Node) RequestSegment(peer protocol.DeviceIdentifier, segment protocol.FileSegment) {

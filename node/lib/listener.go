@@ -33,7 +33,8 @@ func (node *Node) ListenOnUDP() error {
 		}
 
 		data := buffer[:n]
-		s := fmt.Sprintf("\n\nReceived %d bytes from %s: %s\n\n", n, addr.String(), string(data))
+		// s := fmt.Sprintf("\n\nReceived %d bytes from %s: %s\n\n", n, addr.String(), string(data))
+		s := fmt.Sprintf("\n\nReceived %d bytes from %s\n\n", n, addr.String())
 		color.Green(s)
 		node.handleUDPMessage(addr, data)
 	}
@@ -89,7 +90,7 @@ func (node *Node) HandleP2PRequest(addr *net.UDPAddr, msg p2p.Message) {
 		color.Yellow("segment:")
 		color.Yellow(string(segment))
 	}
-	segment_data,_ := node.KnownFiles.Load(msg.FileId) // WARN !!!! NOT CHECKING THIS
+	segment_data, _ := node.KnownFiles.Load(msg.FileId) // WARN !!!! NOT CHECKING THIS
 	hash := segment_data.SegmentHashes[msg.Header.SegmentOffset]
 	f := protocol.FileSegment{
 		BlockOffset: int64(msg.SegmentOffset),

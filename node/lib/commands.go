@@ -188,6 +188,44 @@ func (node *Node) Download(args []string) helpers.StatusMessage {
 	return ret
 }
 
+func (node *Node) AbortDownload(args []string) helpers.StatusMessage {
+	ret := helpers.NewStatusMessage()
+
+	file_hash, err := node.ResolveFileID(args[0])
+	if err != nil {
+		ret.AddError(err)
+		if err != nil {
+			return ret
+		}
+	}
+	d, ok := node.Downloads.Load(file_hash)
+	if !ok {
+		ret.AddError(fmt.Errorf("download not in progress"))
+	}
+	d.Abort()
+	node.Downloads.Delete(file_hash)
+	ret.AddMessage(nil, (fmt.Sprint("Download of ", file_hash, "stopped")))
+	return ret
+}
+func (node *Node) DownloadState(args []string) helpers.StatusMessage {
+	ret := helpers.NewStatusMessage()
+
+	file_hash, err := node.ResolveFileID(args[0])
+	if err != nil {
+		ret.AddError(err)
+		if err != nil {
+			return ret
+		}
+	}
+	d, ok := node.Downloads.Load(file_hash)
+	if !ok {
+		ret.AddError(fmt.Errorf("download not in progress"))
+	}
+	d.PrintState()
+	return ret
+
+}
+
 func (client *Node) Status(args []string) helpers.StatusMessage {
 	msg := helpers.NewStatusMessage()
 
