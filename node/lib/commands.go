@@ -115,7 +115,8 @@ func (node *Node) FetchFiles(_ []string) helpers.StatusMessage {
 	node.KnownFiles = helpers_sync.FromMap(*all_files)
 	keys := helpers.MapKeys[protocol.FileHash](*all_files)
 	all_files = nil
-	ret.AddMessage(nil, fmt.Sprint("fetched", keys))
+	ret.AddMessage(nil, fmt.Sprint("fetched ", keys.String()))
+
 	return ret
 }
 
@@ -131,9 +132,8 @@ func (node *Node) ListFiles(_ []string) helpers.StatusMessage {
 	node.FetchFiles(nil)
 	ret := helpers.StatusMessage{}
 	node.KnownFiles.Range(func(_ protocol.FileHash, v protocol.FileMetaData) bool {
-		fmt.Println(v.Name, ":", v.Hash)
+		ret.AddMessage(nil, fmt.Sprint(v.Name, ":", v.Hash))
 		return true
-
 	})
 	return ret
 }
@@ -163,7 +163,6 @@ func (node *Node) WhoHas(files []string) helpers.StatusMessage {
 	return ret
 }
 
-
 func (node *Node) DownloadFile(file_hash protocol.FileHash) error {
 	color.Green("DOWNLOADIN " + fmt.Sprintf("%d", file_hash))
 
@@ -174,6 +173,7 @@ func (node *Node) DownloadFile(file_hash protocol.FileHash) error {
 
 	err := downloader.Start()
 	node.Downloads.Delete(file_hash)
+	
 	return err
 }
 
@@ -233,8 +233,31 @@ func (node *Node) DownloadState(args []string) helpers.StatusMessage {
 	if !ok {
 		ret.AddError(fmt.Errorf("download not in progress"))
 	} else {
-		d.PrintState()
+		ret.AddMessage(nil, d.String())
 	}
+	return ret
+
+}
+func (node *Node) OngoingDownloads(_ []string) helpers.StatusMessage {
+	ret := helpers.NewStatusMessage()
+	node.Downloads.Range(func(file protocol.FileHash, downloader *Downloader) bool {
+		done := 0
+		total := 0
+		downloader.segments.Range(func(_ int, s Status) bool {
+			if s == Downloaded {
+				done++
+			}
+			total++
+			return true
+		})
+		metadata, ok := node.KnownFiles.Load(file)
+		if ok {
+			s := fmt.Sprint(metadata.Name, "[", file, "]: ", done*100./total, "%% done")
+			ret.AddMessage(nil, s)
+
+		}
+		return true
+	})
 	return ret
 
 }

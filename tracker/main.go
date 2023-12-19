@@ -42,6 +42,17 @@ func (s *handler) HandleRequest(conn net.Conn, req fstp.Request) fstp.Response {
 			s_manager.DumpToFile()
 			return fstp.Response(fstp.Response{Header: fstp.Header{Flags: fstp.ErrResp}, Payload: nil})
 		}
+	case fstp.IHaveSegReq:
+		x, ok := req.Payload.(*fstp.IHaveSegmentsReqProps)
+		if !ok {
+			return fstp.NewErrorResponse(fmt.Errorf("invalid payload type"))
+		}
+		err := s_manager.BatchRegisterFileSegments(device, *x)
+		if err != nil {
+			return fstp.NewErrorResponse(err)
+		} else {
+			return fstp.NewOkResponse()
+		}
 	case fstp.AllFilesReq:
 		allf := (s_manager.GetAllFiles())
 

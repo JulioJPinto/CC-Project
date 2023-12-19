@@ -12,6 +12,7 @@ const (
 	IHaveFileReq = 0b0010
 	WhoHasReq    = 0b0011
 	AllFilesReq  = 0b0100
+	IHaveSegReq  = 0b0111
 
 	OKResp  = 0b1000
 	ErrResp = 0b1001
@@ -23,6 +24,7 @@ const (
 func HeaderType(flags int) string {
 	var m = map[int]string{
 		IHaveFileReq: "IHaveFileReq",
+		IHaveSegReq:  "IHaveSegReq",
 		WhoHasReq:    "WhoHasReq",
 		AllFilesReq:  "AllFilesReq",
 		OKResp:       "OKResp",
@@ -71,9 +73,7 @@ func NewAllFilesResponse(files AllFilesRespProps) Response {
 
 const HeaderSize = 5 // 5 bytes
 
-type IHaveSegmentsReqProps struct {
-	Segments []protocol.FileSegment `json:"segments"`
-}
+type IHaveSegmentsReqProps []protocol.FileSegment
 
 type IHaveFileReqProps protocol.FileMetaData
 
@@ -98,8 +98,8 @@ func (message *Message) Serialize() ([]byte, error) {
 	if message.Payload == nil {
 		return []byte{tag, 0, 0, 0, 0}, nil
 	}
-	payload, _ := json.Marshal(message.Payload) 
-	payload_size := uint32(len(payload)) 
+	payload, _ := json.Marshal(message.Payload)
+	payload_size := uint32(len(payload))
 	serialized_payload_size := make([]byte, unsafe.Sizeof(payload_size))
 	binary.LittleEndian.PutUint32(serialized_payload_size, payload_size)
 	ret := append(append([]byte{tag}, serialized_payload_size...), payload...)
@@ -107,45 +107,49 @@ func (message *Message) Serialize() ([]byte, error) {
 
 }
 
-func empty_payload(f int) (any,bool) {
+func empty_payload(f int) (any, bool) {
 	switch f {
 
 	case IHaveFileReq:
 		{
-			return &IHaveFileReqProps{},true
+			return &IHaveFileReqProps{}, true
+		}
+	case IHaveSegReq:
+		{
+			return &IHaveSegmentsReqProps{}, true
 		}
 	case WhoHasReq:
 		{
-			return &WhoHasReqProps{},true
+			return &WhoHasReqProps{}, true
 		}
 	case WhoHasResp:
 		{
-			return &WhoHasRespProps{},true
+			return &WhoHasRespProps{}, true
 		}
 	case AllFilesReq:
 		{
-			return &struct{}{},true
+			return &struct{}{}, true
 		}
 	case AllFilesResp:
 		{
-			return &AllFilesRespProps{},true
+			return &AllFilesRespProps{}, true
 		}
 	case OKResp:
 		{
-			return &struct{}{},true
+			return &struct{}{}, true
 		}
 	case ErrResp:
 		{
-			return &ErrorResponse{},true
+			return &ErrorResponse{}, true
 		}
 	}
-	return nil,false
+	return nil, false
 }
 
 func (message *Message) Deserialize(byteArray []byte) error {
 	message.Header.Flags = MessageType(byteArray)
 	var err error = nil
-	payload,ok := empty_payload(int(message.Header.Flags))
+	payload, ok := empty_payload(int(message.Header.Flags))
 	if !ok {
 		return fmt.Errorf("invalid header type: %v", message.Header.Flags)
 	}

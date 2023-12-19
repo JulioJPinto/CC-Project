@@ -97,7 +97,7 @@ func (m *StateManager) BatchRegisterFileSegments(device protocol.DeviceIdentifie
 	for _, segment := range segments {
 		err := m.RegisterFileSegment(device, segment)
 		if err != nil {
-			return err
+			continue
 		}
 	}
 	return nil

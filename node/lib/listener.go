@@ -34,8 +34,11 @@ func (node *Node) ListenOnUDP() error {
 
 		data := buffer[:n]
 		// s := fmt.Sprintf("\n\nReceived %d bytes from %s: %s\n\n", n, addr.String(), string(data))
-		s := fmt.Sprintf("\n\nReceived %d bytes from %s\n\n", n, addr.String())
-		color.Green(s)
+
+		if node.Debug {
+			s := fmt.Sprintf("\n\nReceived %d bytes from %s\n\n", n, addr.String())
+			color.Green(s)
+		}
 		node.handleUDPMessage(addr, data)
 	}
 }
@@ -55,7 +58,9 @@ func (node *Node) handleUDPMessage(addr *net.UDPAddr, packet []byte) error {
 		now := helpers.TrunkI64(time.Now().UnixMilli())
 		delay := now - int32(message.TimeStamp)
 		s := fmt.Sprintf("responded in %d miliseconds", now-int32(message.TimeStamp))
-		color.Green(s)
+		if node.Debug {
+			color.Green(s)
+		}
 
 		hash := message.FileId
 		downloader, ok := node.Downloads.Load(hash)
@@ -87,8 +92,10 @@ func (node *Node) HandleP2PRequest(addr *net.UDPAddr, msg p2p.Message) {
 	if err != nil {
 		color.Red("ERROR GETTING SEGMENT")
 	} else {
-		color.Yellow("segment:")
-		color.Yellow(string(segment))
+		if node.Debug {
+			color.Yellow("segment:")
+			color.Yellow(string(segment))
+		}
 	}
 	segment_data, _ := node.KnownFiles.Load(msg.FileId) // WARN !!!! NOT CHECKING THIS
 	hash := segment_data.SegmentHashes[msg.Header.SegmentOffset]
@@ -103,7 +110,9 @@ func (node *Node) HandleP2PRequest(addr *net.UDPAddr, msg p2p.Message) {
 	ret_msg := p2p.GivYouFileSegmentResponse(f, segment, msg.TimeStamp)
 	m := p2p.Message(ret_msg)
 	bytes, _ := m.Serialize()
-	color.Cyan(string(ret_msg.Payload))
+	if node.Debug {
+		color.Cyan(string(ret_msg.Payload))
+	}
 	node.sender.Send(*addr, bytes)
 }
 

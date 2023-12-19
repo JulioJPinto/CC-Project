@@ -77,6 +77,13 @@ func IHaveFileRequest(props IHaveFileReqProps) Request {
 	return Request{header, &props}
 }
 
+func IHaveSegmentsReq(props IHaveSegmentsReqProps) Request {
+	header := Header{
+		IHaveSegReq,
+	}
+	return Request{header, &props}
+}
+
 func AllFilesRequest() Request {
 	return Request{Header{AllFilesReq}, nil}
 }

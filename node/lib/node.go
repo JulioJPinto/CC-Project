@@ -11,6 +11,7 @@ import (
 )
 
 type Node struct {
+	Debug      bool
 	FSTPclient *fstp.Client
 	P2PConfig  p2p.Config
 	sender     *helpers.Uploader
@@ -22,7 +23,7 @@ type Node struct {
 }
 
 func NewNode(fstp_config fstp.Config, p2p_config p2p.Config, debugging bool) (*Node, error) {
-	client := &Node{}
+	client := &Node{Debug: debugging}
 	client.MyFiles = make(map[protocol.FileHash]string)
 	client.KnownFiles = &helpers_sync.Map[protocol.FileHash, protocol.FileMetaData]{}
 	client.Downloads = &helpers_sync.Map[protocol.FileHash, *Downloader]{}
@@ -50,3 +51,5 @@ func (node *Node) RequestSegment(peer protocol.DeviceIdentifier, segment protoco
 	addr.Port = 9090
 	node.sender.Send(*addr, b)
 }
+
+

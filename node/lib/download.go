@@ -73,11 +73,12 @@ func (d *Downloader) stillNeed() map[protocol.DeviceIdentifier][]protocol.FileSe
 	return ret
 }
 
-func (d *Downloader) PrintState() {
-	fmt.Printf("Downloader State:\n")
-	fmt.Printf(" - File: %d\n", d.file)
-	fmt.Printf(" - Channel: %p\n", d.channel)
-	fmt.Printf(" - Done: %v\n", d.done.IsSet())
+func (d *Downloader) String() string {
+	ret := ""
+	ret += "Downloader State:\n"
+	ret += fmt.Sprintf(" - File: %d\n", d.file)
+	ret += fmt.Sprintf(" - Channel: %p\n", d.channel)
+	ret += fmt.Sprintf(" - Done: %v\n", d.done.IsSet())
 
 	fmt.Println(" - Segments:")
 	d.segments.Range(func(key int, value Status) bool {
@@ -87,41 +88,42 @@ func (d *Downloader) PrintState() {
 		switch status {
 		case Missing:
 			{
-				fmt.Printf("   - Segment %d: Missing\n", segmentIndex)
+				ret += fmt.Sprintf("   - Segment %d: Missing\n", segmentIndex)
 
 			}
 		case Downloaded:
 			{
-				fmt.Printf("   - Segment %d: Downloaded\n", segmentIndex)
+				ret += fmt.Sprintf("   - Segment %d: Downloaded\n", segmentIndex)
 			}
 		default:
 			{
-				fmt.Printf("   - Segment %d: %d\n", segmentIndex, status)
+				ret += fmt.Sprintf("   - Segment %d: %d\n", segmentIndex, status)
 
 			}
 		}
 		return true
 	})
 
-	fmt.Println(" - WhoHas:")
+	ret += (" - WhoHas:")
 	for deviceID, segments := range d.whoHas {
-		fmt.Printf("   - Device ID: %s\n", deviceID)
-		fmt.Println("     - Segments:")
+		ret += fmt.Sprintf("   - Device ID: %s\n", deviceID)
+		ret += ("     - Segments:\n")
 		for _, segment := range segments {
-			fmt.Printf("       - BlockOffset: %d, SegmentHash: %d\n",
+			ret += fmt.Sprintf("       - BlockOffset: %d, SegmentHash: %d\n",
 				segment.BlockOffset, segment.Hash)
 		}
 	}
+	return ret
 }
 
 func (d *Downloader) ForwardMessage(msg p2p.Message, peer protocol.DeviceIdentifier) {
-	d.channel <- AddrMessage{msg: msg, peer: peer}
+	if !d.done.IsSet() {
+		d.channel <- AddrMessage{msg: msg, peer: peer}
+	}
 }
 
 func (d *Downloader) Start() error {
 	d.node.Downloads.Store(d.file, d)
-	color.Green("created channel for " + fmt.Sprintf("%d", d.file))
-	fmt.Println(d.channel)
 	file_meta_data, ok := d.node.KnownFiles.Load(d.file) // file_meta_data,ok := c.KnownFiles.get(d.file)
 
 	if !ok {
@@ -145,14 +147,16 @@ func (d *Downloader) Start() error {
 
 	p := map[protocol.DeviceIdentifier][]protocol.FileSegment(*pay)
 	d.whoHas = p
-
-	for k, v := range p {
-		color.Cyan(string(k) + ": ")
-		for s := range v {
-			x, _ := json.Marshal(s)
-			color.Cyan("\t" + string(x))
+	if d.node.Debug {
+		for k, v := range p {
+			color.Cyan(string(k) + ": ")
+			for s := range v {
+				x, _ := json.Marshal(s)
+				color.Cyan("\t" + string(x))
+			}
 		}
 	}
+
 	if resp.Header.Flags == fstp.ErrResp {
 		err_resp := resp.Payload.(*fstp.ErrorResponse)
 		return fmt.Errorf(err_resp.Err)
@@ -162,17 +166,38 @@ func (d *Downloader) Start() error {
 		d.segments.Store(n, Missing)
 	}
 
-	path := d.node.NodeDir
+	path_ := d.node.NodeDir
+	go d.update_who_has(500)
+	go d.await_segment_responses(file_meta_data, path_)
+	d.send_segment_requests()
 
-	go d.await_segment_responses(file_meta_data, path)
-	X := d.send_segment_requests()
-	println("HEREEEEE", X)
+	go d.node.makeFileAvailable(path.Join(path_, file_meta_data.Name))
 	return nil
 }
 
 func (d *Downloader) Abort() error {
 	d.interrupt.Set()
 	return nil
+}
+
+func (d *Downloader) update_who_has(sleep_for int) {
+	for {
+		if d.done.IsSet() {
+			break
+		}
+		time.Sleep(time.Millisecond * time.Duration(sleep_for))
+		resp, err := d.node.FSTPclient.Request(fstp.NewWhoHasRequest(fstp.WhoHasReqProps{File: d.file}))
+		if err != nil {
+			continue
+		}
+		pay, ok := resp.Payload.(*fstp.WhoHasRespProps)
+		if !ok {
+			continue
+		}
+
+		p := map[protocol.DeviceIdentifier][]protocol.FileSegment(*pay)
+		d.whoHas = p
+	}
 }
 
 func getSortedKeys(m map[protocol.DeviceIdentifier]float64) []protocol.DeviceIdentifier {
@@ -227,47 +252,29 @@ func (d *Downloader) send_segment_requests() bool {
 
 		n_gaijos := 4
 		needed := d.stillNeed()
-		fmt.Println("NEEEEEDEDD: ", needed)
 		set_gajos := helpers.MapKeys(needed)
 		gajos := d.pickGaijos(set_gajos, n_gaijos)
-		fmt.Println("GAJOS:   ", gajos)
 		for gajo, peso := range gajos {
 			needed_from_gajo := needed[gajo]
-			for i := 0; i < int(peso)+1&& i<len(needed_from_gajo); i++ {
+			for i := 0; i < int(peso)+1 && i < len(needed_from_gajo); i++ {
 				segment := needed_from_gajo[i]
 				status, _ := d.segments.Load(int(segment.BlockOffset))
 				if status == Missing {
 					d.node.RequestSegment(gajo, segment)
-					fmt.Println("just requested", segment.BlockOffset)
 					d.segments.Store(int(segment.BlockOffset), Pending)
-				} else if status > 0 {
-					status++
-					d.segments.Store(int(segment.BlockOffset), status)
-				}
-				if status > 5 {
-					d.segments.Store(int(segment.BlockOffset), Missing)
 				}
 			}
 		}
-
-		// for id, segments := range d.whoHas {
-		// 	for _, segment := range segments {
-		// 		// var status Status = Missing
-		// 		status, _ := d.segments.Load(int(segment.BlockOffset))
-		// 		if status == Missing {
-		// 			d.node.RequestSegment(id, segment)
-		// 			fmt.Println("just requested", segment.BlockOffset)
-		// 			d.segments.Store(int(segment.BlockOffset), Pending)
-		// 		} else if status > 0 {
-		// 			status++
-		// 			d.segments.Store(int(segment.BlockOffset), status)
-		// 		}
-		// 		if status > 5 {
-		// 			d.segments.Store(int(segment.BlockOffset), Missing)
-		// 		}
-
-		// 	}
-		// }
+		d.segments.Range(func(key int, status Status) bool {
+			if status > 0 {
+				status++
+				d.segments.Store(key, status)
+			}
+			if status > 5 {
+				d.segments.Store(key, Missing)
+			}
+			return true
+		})
 		time.Sleep(1000 * time.Millisecond)
 	}
 }
@@ -301,16 +308,25 @@ func (d *Downloader) await_segment_responses(file protocol.FileMetaData, path_ s
 		return
 	}
 
-	for addrmsg := range d.channel {
+	segments := []protocol.FileSegment{}
 
-		segmente_offset := addrmsg.msg.Header.SegmentOffset * protocol.SegmentMaxLength
+	for addrmsg := range d.channel {
+		println("SEGMETNS:", segments)
+		if len(segments) > 5 {
+			println("\n\n\n\n\nAHOY CAPTAIN \n\n\n\n\n\n\n\n")
+			d.node.FSTPclient.Request(fstp.IHaveSegmentsReq(segments))
+			segments = []protocol.FileSegment{}
+		}
+		offset := addrmsg.msg.Header.SegmentOffset
+		segmente_offset := offset * protocol.SegmentMaxLength
 		// headerJSON, _ := json.MarshalIndent(addrmsg.msg.Header, "", "  ")
 		// fmt.Println(string(headerJSON))
 
-		if file.SegmentHashes[addrmsg.msg.Header.SegmentOffset] == protocol.HashSegment(addrmsg.msg.Payload, int(addrmsg.msg.Length)) {
+		segment_hash := protocol.HashSegment(addrmsg.msg.Payload, int(addrmsg.msg.Length))
+		if file.SegmentHashes[addrmsg.msg.Header.SegmentOffset] == segment_hash {
 			show1 := fmt.Sprintf("the hashin do be matchin in segment %d of file %s\n", addrmsg.msg.Header.SegmentOffset, file.Name)
 			color.Green(show1)
-
+			segments = append(segments, protocol.FileSegment{BlockOffset: int64(offset), FileHash: file.Hash, Hash: file.SegmentHashes[addrmsg.msg.Header.SegmentOffset]})
 			d.segments.Store(int(addrmsg.msg.Header.SegmentOffset), Downloaded)
 			d.checkIfDone()
 			writef.Seek(int64(segmente_offset), 0)
@@ -318,7 +334,7 @@ func (d *Downloader) await_segment_responses(file protocol.FileMetaData, path_ s
 		} else {
 			show1 := fmt.Sprintf("the hashin do NOT be matchin in segment %d of file %s\n", addrmsg.msg.Header.SegmentOffset, file.Name)
 			color.Red(show1)
-			show := fmt.Sprintf("%d vs %d", file.SegmentHashes[addrmsg.msg.Header.SegmentOffset], protocol.HashSegment(addrmsg.msg.Payload, int(addrmsg.msg.Length)))
+			show := fmt.Sprintf("%d vs %d", file.SegmentHashes[addrmsg.msg.Header.SegmentOffset], segment_hash)
 			color.Red(show)
 			peer_stats, _ := d.node.PeerStats.Load(addrmsg.peer)
 			peer_stats.NDroppedPackets++
@@ -330,5 +346,4 @@ func (d *Downloader) await_segment_responses(file protocol.FileMetaData, path_ s
 			return
 		}
 	}
-	println(" HERE ??????????????????????")
 }

@@ -22,8 +22,10 @@ var commands = map[string]func(*lib.Node, []string) helpers.StatusMessage{
 	"d":        func(g *lib.Node, a []string) helpers.StatusMessage { return g.Download(a) },
 	"abort":    func(g *lib.Node, a []string) helpers.StatusMessage { return g.AbortDownload(a) },
 	"d_state":  func(g *lib.Node, a []string) helpers.StatusMessage { return g.DownloadState(a) },
-	"test":     func(g *lib.Node, a []string) helpers.StatusMessage { return g.Test(a) },
-	"peers":    func(g *lib.Node, a []string) helpers.StatusMessage { return g.Stats() },
+	"ongoing":  func(g *lib.Node, a []string) helpers.StatusMessage { return g.OngoingDownloads(a) },
+
+	"test":  func(g *lib.Node, a []string) helpers.StatusMessage { return g.Test(a) },
+	"peers": func(g *lib.Node, a []string) helpers.StatusMessage { return g.Stats() },
 	// "status":
 	"leave": func(g *lib.Node, a []string) helpers.StatusMessage { os.Exit(0); return helpers.StatusMessage{} },
 }
